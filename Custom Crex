@@ -1,11 +1,10 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.1
 // @description  TTS score announcer for crex.com live matches
 // @author       You
 // @match        https://crex.com/*
-// @match        https://crex.live/*
 // @icon         https://crex.com/assets/icon/favicon.ico
 // @grant        none
 // @run-at       document-idle
@@ -262,7 +261,6 @@ function injectStyles() {
     style.id = 'crex-custom-styles';
     style.textContent = `
         app-match-projected-score { display: none !important; }
-        app-match-inning-wise-session { display: none !important; }
         .comm-wrap.comm-left-section { margin: 0 auto !important; }
     `;
     document.head.appendChild(style);
