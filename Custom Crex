@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      1.5.1
-// @description  try to take over the world!
+// @version      1.0
+// @description  TTS score announcer for crex.com live matches
 // @author       You
-// @match        https://crex.live/scoreboard/*
-// @icon         https://crex.live/assets/icon/favicon.ico
+// @match        https://crex.com/*
+// @match        https://crex.live/*
+// @icon         https://crex.com/assets/icon/favicon.ico
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==
@@ -13,80 +14,78 @@
 var isMute = localStorage.getItem('isMute');
 var volume = localStorage.getItem('volume');
 
-isMute = isMute !== null ? isMute: true;
-volume = volume !== null ? volume: '50';
+isMute = isMute !== null ? isMute : true;
+volume = volume !== null ? volume : '50';
 
-isMute = isMute === 'true'; // String to boolean conversion.
+isMute = isMute === 'true';
 
-const container_div = 'body > app-root > div > app-match-details > div.live-score-header.mob-none > app-match-details-wrapper > div > div > div.team-result > div';
-const score_element = 'body > app-root > div > app-match-details > div.live-score-header.mob-none > app-match-details-wrapper > div > div > div.team-result > div > span';
-const score_selector1 = 'body > app-root > div > app-match-details > div.live-score-header.mob-none > app-match-details-wrapper > div > div > div:nth-child(1) > div.team-content > div.team-score > div > span:nth-child(1)';
-const score_selector2 = 'body > app-root > div > app-match-details > div.live-score-header.mob-none > app-match-details-wrapper > div > div > div:nth-child(1) > div.team-content > div.team-score > div > span:nth-child(2)';
-const stream_container = 'body > app-root > div > app-match-details > div.match-detail-route-wrap > div > app-match-live > div > div.live-right-sidebar.m-none';
-const stream_link = localStorage.getItem('iframelink') || 'crex.live';
+const SELECTORS = {
+    container_div: '.live-score-header.mob-none app-match-details-wrapper .team-result > div',
+    score_element: '.live-score-header.mob-none app-match-details-wrapper .team-result > div > span',
+    score_runs: '.live-score-header.mob-none app-match-details-wrapper .team-score > div > span:first-child',
+    score_overs: '.live-score-header.mob-none app-match-details-wrapper .team-score > div > span:nth-child(2)',
+};
+const LOG_PREFIX = '[CustomCrex]';
+const STABILIZE_MS = 2500;
 
-(function() {
+let scoreObserver = null;
+let lastUrl = location.href;
+let initialized = false;
+
+function log(...args) {
+    console.log(LOG_PREFIX, ...args);
+}
+
+(function () {
     'use strict';
-    waitForElementToExist(stream_container).then(element => {
-        var inputContainer = document.createElement('div');
-        inputContainer.setAttribute('style', 'display: flex; align-items: center; margin-bottom: 10px;');
 
-        var iframe_link = document.createElement('input');
-        iframe_link.setAttribute('type', 'text');
-        iframe_link.setAttribute('placeholder', 'Stream link');
-        iframe_link.setAttribute('id', 'iframeLink');
-        iframe_link.setAttribute('style', "flex: 1; padding: 5px; box-sizing: border-box; background: var(--ce_primary_bg); color: var(--ce_primary_txt); border: 1px solid rgba(var(--ce_low_contrast_fg_rgb), 0.4); border-radius: 4px;");
-        iframe_link.setAttribute('value', stream_link);
+    if (!window.location.pathname.startsWith('/scoreboard/')) {
+        log('Not a match page, waiting for SPA navigation...');
+        monitorUrlChanges();
+        return;
+    }
 
-        var playButton = document.createElement('button');
-        playButton.setAttribute('type', 'button');
-        playButton.setAttribute('id', 'playButton');
-        playButton.setAttribute('style', "padding: 5px 10px; margin-left: 5px; cursor: pointer; background: var(--ce_primary_bg); color: var(--ce_primary_txt); border: 1px solid rgba(var(--ce_low_contrast_fg_rgb), 0.4); border-radius: 4px;");
-        playButton.innerHTML = '▶'; // Add play icon (text representation)
+    initScript();
+})();
 
-        //playButton.style.background = primaryBg;
-        //playButton.style.color = primaryTxt;
-        //playButton.style.borderRadius = '4px';
-        //playButton.style.border = `1px solid rgba(var(--ce_low_contrast_fg_rgb), 0.4)`;
-
-        inputContainer.appendChild(iframe_link);
-        inputContainer.appendChild(playButton);
-
-        var iframe = document.createElement('iframe');
-        iframe.setAttribute('id', 'myFrame');
-        iframe.setAttribute('src', stream_link);
-        iframe.setAttribute('width', '100%');
-        iframe.setAttribute('height', '100%');
-        iframe.setAttribute('marginheight', '0');
-        iframe.setAttribute('marginwidth', '0');
-        iframe.setAttribute('scrolling', 'yes');
-        iframe.setAttribute('frameborder', '0');
-        iframe.setAttribute('allowfullscreen', '');
-        iframe.setAttribute('allow', 'encrypted-media');
-        iframe.setAttribute('style', 'height: 205px; border: 5px solid rgba(var(--ce_low_contrast_fg_rgb),.4);');
-        var firstElement = element.firstElementChild;
-        var clonedElement = firstElement.cloneNode(false);
-
-        clonedElement.appendChild(inputContainer);
-        clonedElement.appendChild(iframe);
-        element.insertBefore(clonedElement, element.firstChild);
-
-        playButton.addEventListener('click', function() {
-            const inputLink = iframe_link.value;
-            if (inputLink) {
-                iframe.setAttribute('src', inputLink);
-                localStorage.setItem('iframelink', inputLink);
-                //console.info('saved link');
-            } else {
-                alert('Please enter a valid link.');
+function monitorUrlChanges() {
+    const urlObserver = new MutationObserver(() => {
+        if (location.href !== lastUrl) {
+            lastUrl = location.href;
+            if (window.location.pathname.startsWith('/scoreboard/')) {
+                log('Navigated to match page:', location.href);
+                cleanup();
+                setTimeout(initScript, STABILIZE_MS);
             }
-        });
-
+        }
     });
+    urlObserver.observe(document.body, { childList: true, subtree: true });
+}
 
-    waitForElementToExist(container_div).then(element => {
+function cleanup() {
+    if (scoreObserver) {
+        scoreObserver.disconnect();
+        scoreObserver = null;
+    }
+    const existing = document.getElementById('crex-tts-controls');
+    if (existing) existing.remove();
+    const existingSlider = document.getElementById('crex-volume-container');
+    if (existingSlider) existingSlider.remove();
+    initialized = false;
+}
+
+function initScript() {
+    if (initialized) return;
+    initialized = true;
+    log('Initializing on:', location.href);
+
+    monitorUrlChanges();
+
+    injectStyles();
+
+    waitForElementToExist(SELECTORS.container_div).then(element => {
+        log('Found container, injecting controls...');
         var myDiv = element;
-        //console.info(myDiv)
         myDiv.style.display = "flex";
         myDiv.style.flexDirection = "column";
 
@@ -94,38 +93,34 @@ const stream_link = localStorage.getItem('iframelink') || 'crex.live';
         const voiceSelector = document.createElement('select');
         voiceSelector.id = 'voiceSelect';
         voiceSelector.className = "none";
-
         voiceSelector_Elem.appendChild(voiceSelector);
 
         const TopElement = document.createElement("div");
+        TopElement.id = 'crex-tts-controls';
         TopElement.style.display = 'flex';
         TopElement.style.alignItems = 'center';
         TopElement.style.padding = '10px';
 
-
-
         const newElement_1 = document.createElement("div");
         newElement_1.textContent = "🔇";
-        newElement_1.id = "mute-btn";
+        newElement_1.id = "mute-btn-1";
         newElement_1.style.cursor = "pointer";
         newElement_1.style.padding = '10px';
 
         const newElement_2 = document.createElement("div");
         newElement_2.textContent = "🔇";
-        newElement_2.id = "mute-btn";
+        newElement_2.id = "mute-btn-2";
         newElement_2.style.cursor = "pointer";
         newElement_2.style.padding = '10px';
-        //newElement.setAttribute('_ngcontent-app-root-c17', '');
 
         const volumeSliderContainer = document.createElement('div');
+        volumeSliderContainer.id = 'crex-volume-container';
         volumeSliderContainer.className = 'volume-slider-container';
 
-        // Create the low volume icon
         const lowVolumeIcon = document.createElement('span');
         lowVolumeIcon.className = 'volume-icon';
         lowVolumeIcon.textContent = '🔉';
 
-        // Create the volume slider
         const volumeSlider = document.createElement('input');
         volumeSlider.type = 'range';
         volumeSlider.className = 'volume-slider';
@@ -133,12 +128,10 @@ const stream_link = localStorage.getItem('iframelink') || 'crex.live';
         volumeSlider.max = '100';
         volumeSlider.value = volume;
 
-        // Create the high volume icon
         const highVolumeIcon = document.createElement('span');
         highVolumeIcon.className = 'volume-icon';
         highVolumeIcon.textContent = '🔊';
 
-        // Append the elements to the volume slider container
         volumeSliderContainer.appendChild(lowVolumeIcon);
         volumeSliderContainer.appendChild(volumeSlider);
         volumeSliderContainer.appendChild(highVolumeIcon);
@@ -152,41 +145,21 @@ const stream_link = localStorage.getItem('iframelink') || 'crex.live';
 
         myDiv.insertBefore(TopElement, myDiv.firstChild);
         myDiv.insertBefore(volumeSliderContainer, myDiv.firstChild.nextSibling);
-        //myDiv.appendChild(voiceSelector_Elem);
-        //myDiv.insertBefore(volumeSliderContainer, myDiv.firstChild.nextSibling);
 
-        if (isMute) {
-            newElement_1.textContent = "🔇";
-            newElement_2.textContent = "🔇";
-            newElement_1.setAttribute("title", "Muted");
-            newElement_2.setAttribute("title", "Muted");
-        } else {
-            newElement_1.textContent = "🔊";
-            newElement_2.textContent = "🔊";
-            newElement_1.setAttribute("title", "UnMuted");
-            newElement_2.setAttribute("title", "UnMuted");
-        }
+        updateMuteUI(newElement_1, newElement_2);
+
         function spanClickEvent() {
             isMute = !isMute;
-            //console.info(isMute);
             localStorage.setItem('isMute', isMute);
+            updateMuteUI(newElement_1, newElement_2);
             if (isMute) {
-                newElement_1.textContent = "🔇";
-                newElement_2.textContent = "🔇";
-                newElement_1.setAttribute("title", "Muted");
-                newElement_2.setAttribute("title", "Muted");
                 window.speechSynthesis.cancel();
-            } else {
-                newElement_1.textContent = "🔊";
-                newElement_2.textContent = "🔊";
-                newElement_1.setAttribute("title", "UnMuted");
-                newElement_2.setAttribute("title", "UnMuted");
             }
         }
         newElement_1.addEventListener("click", spanClickEvent);
         newElement_2.addEventListener("click", spanClickEvent);
 
-        document.addEventListener('keydown', function(event) {
+        document.addEventListener('keydown', function (event) {
             if (event.key === 'm') {
                 newElement_1.click();
             }
@@ -194,186 +167,199 @@ const stream_link = localStorage.getItem('iframelink') || 'crex.live';
 
         populateVoiceList();
 
-        volumeSlider.addEventListener('input', function() {
+        volumeSlider.addEventListener('input', function () {
             volume = volumeSlider.value;
             localStorage.setItem('volume', volume);
         });
 
-
-        waitForElementToExist(score_element).then(selement => {
-            let one = selement;
-            monitorChangesBySelector(one, changeCallback);
-        });
-    });
-})();
-
-
-function monitorChangesBySelector(targetElement, callback) {
-    const observer = new MutationObserver((mutationsList, observer) => {
-        callback();
-    });
-    const config = { childList: true, characterData: true, subtree: true, attributes: false};
-    observer.observe(targetElement, config);
+        setupScoreMonitor();
+    }).catch(err => log('Container not found:', err.message));
 }
 
-function convertRunScoreToText(score) {
-    if (!/^\d+$/.test(score)) {
-        return score;
+function updateMuteUI(btn1, btn2) {
+    if (isMute) {
+        btn1.textContent = "🔇";
+        btn2.textContent = "🔇";
+        btn1.setAttribute("title", "Muted");
+        btn2.setAttribute("title", "Muted");
+    } else {
+        btn1.textContent = "🔊";
+        btn2.textContent = "🔊";
+        btn1.setAttribute("title", "UnMuted");
+        btn2.setAttribute("title", "UnMuted");
     }
+}
 
-    switch (score) {
-        case '0':
-            return "dot";
-        case '1':
-            return "single";
-        case '2':
-            return "double";
-        case '3':
-            return "three runs";
-        case '4':
-            return "four";
-        case '5':
-            return "five runs";
-        case '6':
-            return "six";
-        default:
-            return `${score} runs`;
-    }
+function setupScoreMonitor() {
+    waitForElementToExist(SELECTORS.score_element).then(scoreEl => {
+        log('Score element found, starting monitor...');
+        scoreObserver = new MutationObserver(() => {
+            changeCallback();
+        });
+        scoreObserver.observe(scoreEl, {
+            childList: true,
+            characterData: true,
+            subtree: true,
+            attributes: false,
+        });
+    }).catch(err => log('Score element not found:', err.message));
 }
 
 function changeCallback() {
-    let one = document.querySelector(score_element);
-    one.style.cursor = "pointer";
-    //console.info(one.innerText);
-    //ballscoreAnnouncer(one.innerText);
-    audioAnnouncer(convertRunScoreToText(one.innerText));
-    scoreAnnouncer(one.innerText);
+    let el = document.querySelector(SELECTORS.score_element);
+    if (!el) return;
+    el.style.cursor = "pointer";
+    let text = el.innerText.trim();
+    if (!text) return;
+    audioAnnouncer(text);
+    scoreAnnouncer(text);
 }
 
 function audioAnnouncer(text) {
-    if ('speechSynthesis' in window) {
-        const synth = window.speechSynthesis;
-        function speakText(text) {
-            const utterance = new SpeechSynthesisUtterance(text);
-            let voiceSelect = document.getElementById('voiceSelect');
-            let voices = window.speechSynthesis.getVoices();
-            let selectedVoice = voices.find(voice => voice.name === voiceSelect.value);
-            utterance.voice = selectedVoice;
-            utterance.volume = convertVolume(volume);
-            synth.speak(utterance);
-        }
-        if (!isMute) {
-            speakText(text);
-        }
-    } else {
-        console.error('Text-to-speech is not supported in this browser.');
+    if (!('speechSynthesis' in window)) {
+        log('Text-to-speech is not supported in this browser.');
+        return;
     }
+    if (isMute) return;
+
+    const synth = window.speechSynthesis;
+    const utterance = new SpeechSynthesisUtterance(text);
+    let voiceSelect = document.getElementById('voiceSelect');
+    if (voiceSelect) {
+        let voices = synth.getVoices();
+        let selectedVoice = voices.find(v => v.name === voiceSelect.value);
+        if (selectedVoice) utterance.voice = selectedVoice;
+    }
+    utterance.volume = convertVolume(volume);
+    synth.speak(utterance);
 }
 
 function scoreAnnouncer(text) {
-    if (text.toLowerCase() === 'over') {
-        const promise1 = waitForElementToExist(score_selector1).then(element => element.innerText);
-        const promise2 = waitForElementToExist(score_selector2).then(element => element.innerText);
+    if (text.toLowerCase().trim() !== 'over') return;
 
-        Promise.all([promise1, promise2])
-            .then(([runs_wkt, overs]) => {
-            //console.info(runs_wkt + ' ' + overs);
-            let Score_Script = runs_wkt.replace('-', ' Runs For ') + ' Wickets and ' + parseInt(overs) + ' Overs.'
-            //console.info(Score_Script);
-            audioAnnouncer(Score_Script);
-        })
-            .catch(error => {
-            console.error("Error:", error);
-        });
-    }
-}
+    const runsEl = document.querySelector(SELECTORS.score_runs);
+    const oversEl = document.querySelector(SELECTORS.score_overs);
 
-function ballscoreAnnouncer(text) {
-    if (text.toLowerCase() === 'ball') {
-        const promise1 = waitForElementToExist(score_selector1).then(element => element.innerText);
-        const promise2 = waitForElementToExist(score_selector2).then(element => element.innerText);
-
-        Promise.all([promise1, promise2])
-            .then(([runs_wkt, overs]) => {
-            //console.info(runs_wkt + ' ' + overs);
-            let Score_Script = overs.replace('.', 'th over') + 'ball'
-            //console.info(Score_Script);
-            audioAnnouncer(Score_Script);
-        })
-            .catch(error => {
-            console.error("Error:", error);
-        });
+    if (runsEl && oversEl) {
+        let runs_wkt = runsEl.innerText.trim();
+        let overs = oversEl.innerText.trim();
+        let scoreScript = runs_wkt.replace('-', ' Runs For ') + ' Wickets and ' + parseInt(overs) + ' Overs.';
+        log('Over summary:', scoreScript);
+        audioAnnouncer(scoreScript);
     }
 }
 
 function convertVolume(volumeString) {
     let volumeInt = parseInt(volumeString, 10);
     if (isNaN(volumeInt) || volumeInt < 0 || volumeInt > 100) {
-        throw new Error("Volume must be a string representing a number between 0 and 100.");
+        return 0.5;
     }
     return volumeInt / 100;
 }
 
-function waitForElementToExist(selector) {
-    return new Promise(resolve => {
-        if (document.querySelector(selector)) {
-            return resolve(document.querySelector(selector));
-        }
+function injectStyles() {
+    const style = document.createElement('style');
+    style.id = 'crex-custom-styles';
+    style.textContent = `
+        app-match-projected-score { display: none !important; }
+        app-match-inning-wise-session { display: none !important; }
+        .comm-wrap.comm-left-section { margin: 0 auto !important; }
+    `;
+    document.head.appendChild(style);
+}
 
-        const observer = new MutationObserver(() => {
-            if (document.querySelector(selector)) {
-                resolve(document.querySelector(selector));
-                observer.disconnect();
+function waitForElementToExist(selector, timeout = 30000) {
+    return new Promise((resolve, reject) => {
+        const startTime = Date.now();
+
+        const tryResolve = () => {
+            setTimeout(() => {
+                const el = document.querySelector(selector);
+                if (el) {
+                    resolve(el);
+                } else {
+                    startObserving();
+                }
+            }, STABILIZE_MS);
+        };
+
+        const startObserving = () => {
+            const el = document.querySelector(selector);
+            if (el) {
+                tryResolve();
+                return;
             }
-        });
 
-        observer.observe(document.body, {
-            subtree: true,
-            childList: true,
-        });
+            if (Date.now() - startTime > timeout) {
+                reject(new Error('Timeout: ' + selector));
+                return;
+            }
+
+            const observer = new MutationObserver(() => {
+                if (document.querySelector(selector)) {
+                    observer.disconnect();
+                    tryResolve();
+                }
+            });
+
+            observer.observe(document.body, {
+                subtree: true,
+                childList: true,
+            });
+
+            setTimeout(() => {
+                observer.disconnect();
+                if (!document.querySelector(selector)) {
+                    reject(new Error('Timeout: ' + selector));
+                }
+            }, timeout - (Date.now() - startTime));
+        };
+
+        startObserving();
     });
 }
 
 function getVoices() {
     return new Promise((resolve, reject) => {
-        if ('speechSynthesis' in window) {
-            let synth = window.speechSynthesis;
-
-            synth.onvoiceschanged = () => {
-                let voices = synth.getVoices();
-                resolve(voices);
-            };
-        } else {
+        if (!('speechSynthesis' in window)) {
             reject(new Error('Speech synthesis not supported'));
+            return;
         }
+        let synth = window.speechSynthesis;
+        let voices = synth.getVoices();
+        if (voices.length > 0) {
+            resolve(voices);
+            return;
+        }
+        synth.onvoiceschanged = () => {
+            resolve(synth.getVoices());
+        };
     });
 }
 
 function populateVoiceList() {
     let voiceSelect = document.getElementById('voiceSelect');
+    if (!voiceSelect) return;
 
     getVoices()
         .then(voices => {
-        voices.forEach(voice => {
-            let option = document.createElement('option');
-            option.textContent = voice.name;
-            option.setAttribute('data-lang', voice.lang);
-            option.setAttribute('data-name', voice.name);
-            voiceSelect.appendChild(option);
-        });
-        // Set default voice if selected voice is not found in the list
-        let selectedVoice = localStorage.getItem('selectedVoice');
-        if (selectedVoice) {
-            voiceSelect.value = selectedVoice;
-        }
-    })
+            voices.forEach(voice => {
+                let option = document.createElement('option');
+                option.textContent = voice.name;
+                option.setAttribute('data-lang', voice.lang);
+                option.setAttribute('data-name', voice.name);
+                voiceSelect.appendChild(option);
+            });
+            let selectedVoice = localStorage.getItem('selectedVoice');
+            if (selectedVoice) {
+                voiceSelect.value = selectedVoice;
+            }
+        })
         .catch(error => {
-        console.error('Error retrieving voices:', error);
-    });
+            log('Error retrieving voices:', error);
+        });
 
-    // Event listener to store selected voice in local storage
-    voiceSelect.addEventListener('change', function() {
-        let selectedVoice = voiceSelect.value;
-        localStorage.setItem('selectedVoice', selectedVoice);
+    voiceSelect.addEventListener('change', function () {
+        localStorage.setItem('selectedVoice', voiceSelect.value);
     });
 }
