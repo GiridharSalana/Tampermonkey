@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      1.2
+// @version      1.3
 // @description  TTS score announcer for crex.com live matches
 // @author       You
 // @match        https://crex.com/*
@@ -261,7 +261,15 @@ function injectStyles() {
     style.id = 'crex-custom-styles';
     style.textContent = `
         app-match-projected-score { display: none !important; }
-        .comm-wrap.comm-left-section { margin: 0 auto !important; }
+
+        /* Stack live section vertically so overs timeline fills full width */
+        .live-container-wrapper { flex-direction: column !important; }
+        .live-left-sidebar { width: 100% !important; max-width: 100% !important; }
+        .live-right-sidebar.m-none { width: 100% !important; max-width: 100% !important; box-sizing: border-box; }
+
+        /* Commentary full width, centered content */
+        .comm-wrap.comm-left-section { width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; box-sizing: border-box; }
+        .comm-wrap.comm-left-section .br-comm { padding: 0 !important; }
         .comm-wrap.comm-left-section .cm-title { text-align: center !important; }
         .comm-wrap.comm-left-section .filter-wrapper { justify-content: center !important; }
     `;
