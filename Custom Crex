@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      1.4
+// @version      1.5
 // @description  TTS score announcer for crex.com live matches
 // @author       You
 // @match        https://crex.com/*
@@ -79,8 +79,6 @@ function initScript() {
     log('Initializing on:', location.href);
 
     monitorUrlChanges();
-
-    injectStyles();
 
     waitForElementToExist(SELECTORS.container_div).then(element => {
         log('Found container, injecting controls...');
@@ -256,16 +254,6 @@ function convertVolume(volumeString) {
     return volumeInt / 100;
 }
 
-function injectStyles() {
-    const style = document.createElement('style');
-    style.id = 'crex-custom-styles';
-    style.textContent = `
-        app-match-projected-score { display: none !important; }
-        .comm-wrap.comm-left-section .cm-title { text-align: center !important; }
-        .comm-wrap.comm-left-section .filter-wrapper { justify-content: center !important; }
-    `;
-    document.head.appendChild(style);
-}
 
 function waitForElementToExist(selector, timeout = 30000) {
     return new Promise((resolve, reject) => {
