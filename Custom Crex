@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      2.4
-// @description  TTS score announcer with centered mute button layout for crex.com
+// @version      2.5
+// @description  TTS score announcer with improved visibility and balanced controls for crex.com
 // @author       You
 // @match        https://crex.com/*
 // @icon         https://crex.com/assets/icon/favicon.ico
@@ -168,6 +168,20 @@ function injectUIFixes() {
             flex-direction: column;
             align-items: center;
         }
+        
+        /* Improve voice selector dropdown visibility */
+        #voiceSelect option {
+            background-color: #1a1a2e !important;
+            color: #ffffff !important;
+            padding: 8px !important;
+            font-size: 13px !important;
+        }
+        
+        #voiceSelect option:checked,
+        #voiceSelect option:hover {
+            background-color: #4a9eff !important;
+            color: #ffffff !important;
+        }
     `;
     
     if (document.head) {
@@ -231,13 +245,13 @@ function initScript() {
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 8px 16px;
-            gap: 15px;
-            background: transparent;
-            margin: 4px 0;
+            padding: 10px 20px;
+            gap: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            margin: 10px auto;
             width: fit-content;
-            margin-left: auto;
-            margin-right: auto;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         `;
 
         // Mute button
@@ -246,28 +260,30 @@ function initScript() {
         muteButton.id = "mute-btn";
         muteButton.style.cssText = `
             cursor: pointer;
-            padding: 4px 8px;
-            font-size: 18px;
+            padding: 6px 10px;
+            font-size: 20px;
             transition: transform 0.2s;
-            opacity: 0.9;
+            opacity: 1;
         `;
-        muteButton.onmouseover = () => { muteButton.style.transform = 'scale(1.15)'; muteButton.style.opacity = '1'; };
-        muteButton.onmouseout = () => { muteButton.style.transform = 'scale(1)'; muteButton.style.opacity = '0.9'; };
+        muteButton.onmouseover = () => { muteButton.style.transform = 'scale(1.15)'; };
+        muteButton.onmouseout = () => { muteButton.style.transform = 'scale(1)'; };
 
-        // Voice selector
+        // Voice selector with better visibility
         const voiceSelector = document.createElement('select');
         voiceSelector.id = 'voiceSelect';
         voiceSelector.style.cssText = `
-            padding: 6px 10px;
-            border-radius: 4px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            background-color: rgba(255, 255, 255, 0.05);
-            color: inherit;
-            font-size: 12px;
+            padding: 8px 14px;
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background-color: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 500;
             cursor: pointer;
             outline: none;
-            min-width: 150px;
-            max-width: 180px;
+            min-width: 180px;
+            max-width: 220px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
         `;
 
         // Volume slider container
@@ -275,12 +291,12 @@ function initScript() {
         volumeContainer.style.cssText = `
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 10px;
         `;
 
         const lowVolumeIcon = document.createElement('span');
         lowVolumeIcon.textContent = '🔉';
-        lowVolumeIcon.style.cssText = 'font-size: 16px; opacity: 0.8;';
+        lowVolumeIcon.style.cssText = 'font-size: 18px; opacity: 0.9;';
 
         const volumeSlider = document.createElement('input');
         volumeSlider.type = 'range';
@@ -289,15 +305,15 @@ function initScript() {
         volumeSlider.max = '100';
         volumeSlider.value = volume;
         volumeSlider.style.cssText = `
-            width: 100px;
-            height: 4px;
+            width: 120px;
+            height: 5px;
             cursor: pointer;
             accent-color: #4a9eff;
         `;
 
         const highVolumeIcon = document.createElement('span');
         highVolumeIcon.textContent = '🔊';
-        highVolumeIcon.style.cssText = 'font-size: 16px; opacity: 0.8;';
+        highVolumeIcon.style.cssText = 'font-size: 18px; opacity: 0.9;';
 
         volumeContainer.appendChild(lowVolumeIcon);
         volumeContainer.appendChild(volumeSlider);
