@@ -1,8 +1,14 @@
-# Tampermonkey Scripts
+# Tampermonkey Scripts 🚀
 
-## Custom Crex (v4.2) 🎤🏏
+A collection of modern, feature-rich Tampermonkey userscripts that enhance your web browsing experience with beautiful UIs and powerful functionality.
 
-A modern, feature-rich Tampermonkey userscript for crex.com that enhances your live cricket match experience with TTS score announcements, theme persistence, and a beautiful glassmorphism UI.
+---
+
+## 📜 Scripts
+
+### Custom Crex (v4.2) 🎤🏏
+
+Enhance your crex.com live cricket match experience with TTS score announcements, theme persistence, and a beautiful glassmorphism UI.
 
 ### ✨ Features
 
@@ -144,4 +150,4 @@ MIT - Feel free to use and modify!
 
 ---
 
-**Made with ❤️ for cricket fans who love tech**
+**Made with ❤️ for enhancing web experiences**
