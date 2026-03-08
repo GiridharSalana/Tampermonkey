@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      4.3
-// @description  TTS score announcer with debug logging for crex.com
+// @version      4.4
+// @description  Fixed missing voiceIconWrapper causing script to fail
 // @author       You
 // @match        https://crex.com/*
 // @icon         https://crex.com/assets/icon/favicon.ico
@@ -227,6 +227,8 @@ function initScript() {
     initialized = true;
     log('Initializing on:', location.href);
 
+    log('About to call waitForElementToExist...');
+    
     waitForElementToExist(SELECTORS.container_div).then(element => {
         log('Found container, injecting controls...');
         
@@ -370,6 +372,13 @@ function initScript() {
         modalContent.appendChild(voiceList);
         modalOverlay.appendChild(modalContent);
         document.body.appendChild(modalOverlay);
+
+        // Voice icon wrapper
+        const voiceIconWrapper = document.createElement('div');
+        voiceIconWrapper.style.cssText = `
+            display: flex;
+            align-items: center;
+        `;
 
         // Hidden select for voice data
         const voiceSelector = document.createElement('select');
