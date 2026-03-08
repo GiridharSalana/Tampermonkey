@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      3.4
-// @description  TTS score announcer with wider controls and proper margin for crex.com
+// @version      4.0
+// @description  TTS score announcer with modern glassmorphism UI - Option A for crex.com
 // @author       You
 // @match        https://crex.com/*
 // @icon         https://crex.com/assets/icon/favicon.ico
@@ -246,54 +246,109 @@ function initScript() {
             align-items: center;
             justify-content: center;
             margin-top: 18px;
-            gap: 15px;
+            gap: 20px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 30px;
+            padding: 8px 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
         `;
 
-        // Mute button
-        const muteButton = document.createElement("div");
-        muteButton.textContent = "🔇";
-        muteButton.id = "mute-btn";
-        muteButton.style.cssText = `
+        // Voice icon button with popup
+        const voiceIconWrapper = document.createElement("div");
+        voiceIconWrapper.style.cssText = `position: relative;`;
+        
+        const voiceIconBtn = document.createElement("div");
+        voiceIconBtn.id = "voice-icon-btn";
+        voiceIconBtn.textContent = "🎤";
+        voiceIconBtn.title = "Select Voice";
+        voiceIconBtn.style.cssText = `
             cursor: pointer;
-            padding: 6px 10px;
-            font-size: 20px;
-            transition: transform 0.2s;
-            opacity: 1;
+            font-size: 22px;
+            padding: 6px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         `;
-        muteButton.onmouseover = () => { muteButton.style.transform = 'scale(1.15)'; };
-        muteButton.onmouseout = () => { muteButton.style.transform = 'scale(1)'; };
+        voiceIconBtn.onmouseover = () => {
+            voiceIconBtn.style.background = 'rgba(255, 255, 255, 0.15)';
+            voiceIconBtn.style.transform = 'scale(1.1)';
+        };
+        voiceIconBtn.onmouseout = () => {
+            voiceIconBtn.style.background = 'transparent';
+            voiceIconBtn.style.transform = 'scale(1)';
+        };
 
-        // Voice selector with better visibility
+        // Voice popup menu
+        const voicePopup = document.createElement("div");
+        voicePopup.id = 'voice-popup';
+        voicePopup.style.cssText = `
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 20, 35, 0.98);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 8px;
+            max-height: 250px;
+            overflow-y: auto;
+            min-width: 240px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            display: none;
+            z-index: 10000;
+        `;
+
+        // Hidden select for voice data
         const voiceSelector = document.createElement('select');
         voiceSelector.id = 'voiceSelect';
-        voiceSelector.style.cssText = `
-            padding: 6px 8px;
-            border-radius: 4px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            background-color: rgba(255, 255, 255, 0.15);
-            color: #ffffff;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            outline: none;
-            width: 180px;
-            box-sizing: border-box;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-        `;
+        voiceSelector.style.display = 'none';
 
-        // Volume slider container - same total width as voice selector
+        // Toggle voice popup
+        let isPopupOpen = false;
+        voiceIconBtn.onclick = (e) => {
+            e.stopPropagation();
+            isPopupOpen = !isPopupOpen;
+            voicePopup.style.display = isPopupOpen ? 'block' : 'none';
+        };
+
+        // Close popup when clicking outside
+        document.addEventListener('click', (e) => {
+            if (isPopupOpen && !voiceIconWrapper.contains(e.target)) {
+                voicePopup.style.display = 'none';
+                isPopupOpen = false;
+            }
+        });
+
+        voiceIconWrapper.appendChild(voiceIconBtn);
+        voiceIconWrapper.appendChild(voicePopup);
+
+        // Volume slider container with modern styling
         const volumeContainer = document.createElement('div');
         volumeContainer.style.cssText = `
             display: flex;
             align-items: center;
-            gap: 6px;
-            width: 180px;
-            box-sizing: border-box;
+            gap: 12px;
         `;
 
         const lowVolumeIcon = document.createElement('span');
         lowVolumeIcon.textContent = '🔉';
-        lowVolumeIcon.style.cssText = 'font-size: 16px; opacity: 0.9; flex-shrink: 0;';
+        lowVolumeIcon.style.cssText = `
+            font-size: 18px;
+            opacity: 0.9;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        `;
+        lowVolumeIcon.onmouseover = () => { lowVolumeIcon.style.opacity = '1'; lowVolumeIcon.style.transform = 'scale(1.1)'; };
+        lowVolumeIcon.onmouseout = () => { lowVolumeIcon.style.opacity = '0.9'; lowVolumeIcon.style.transform = 'scale(1)'; };
 
         const volumeSlider = document.createElement('input');
         volumeSlider.type = 'range';
@@ -302,23 +357,57 @@ function initScript() {
         volumeSlider.max = '100';
         volumeSlider.value = volume;
         volumeSlider.style.cssText = `
-            flex: 1;
-            min-width: 0;
+            width: 120px;
             cursor: pointer;
             accent-color: #4a9eff;
+            transition: all 0.3s ease;
         `;
+        volumeSlider.onmouseover = () => { volumeSlider.style.transform = 'scaleY(1.2)'; };
+        volumeSlider.onmouseout = () => { volumeSlider.style.transform = 'scaleY(1)'; };
 
         const highVolumeIcon = document.createElement('span');
         highVolumeIcon.textContent = '🔊';
-        highVolumeIcon.style.cssText = 'font-size: 16px; opacity: 0.9; flex-shrink: 0;';
+        highVolumeIcon.style.cssText = `
+            font-size: 18px;
+            opacity: 0.9;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        `;
+        highVolumeIcon.onmouseover = () => { highVolumeIcon.style.opacity = '1'; highVolumeIcon.style.transform = 'scale(1.1)'; };
+        highVolumeIcon.onmouseout = () => { highVolumeIcon.style.opacity = '0.9'; highVolumeIcon.style.transform = 'scale(1)'; };
 
         volumeContainer.appendChild(lowVolumeIcon);
         volumeContainer.appendChild(volumeSlider);
         volumeContainer.appendChild(highVolumeIcon);
 
-        controlsContainer.appendChild(voiceSelector);
-        controlsContainer.appendChild(muteButton);
+        // Mute button with circular background
+        const muteButton = document.createElement("div");
+        muteButton.textContent = "🔇";
+        muteButton.id = "mute-btn";
+        muteButton.title = "Mute/Unmute (M)";
+        muteButton.style.cssText = `
+            cursor: pointer;
+            padding: 8px;
+            font-size: 20px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        muteButton.onmouseover = () => { 
+            muteButton.style.background = 'rgba(255, 255, 255, 0.15)';
+            muteButton.style.transform = 'scale(1.1)';
+        };
+        muteButton.onmouseout = () => { 
+            muteButton.style.background = 'transparent';
+            muteButton.style.transform = 'scale(1)';
+        };
+
+        controlsContainer.appendChild(voiceIconWrapper);
         controlsContainer.appendChild(volumeContainer);
+        controlsContainer.appendChild(muteButton);
 
         myDiv.insertBefore(controlsContainer, myDiv.firstChild);
 
@@ -521,18 +610,62 @@ function getVoices() {
 
 function populateVoiceList() {
     let voiceSelect = document.getElementById('voiceSelect');
-    if (!voiceSelect) return;
+    let voicePopup = document.getElementById('voice-popup');
+    if (!voiceSelect || !voicePopup) return;
 
     getVoices()
         .then(voices => {
+            let selectedVoice = localStorage.getItem('selectedVoice');
+            
             voices.forEach(voice => {
+                // Add to hidden select
                 let option = document.createElement('option');
                 option.textContent = voice.name;
                 option.setAttribute('data-lang', voice.lang);
                 option.setAttribute('data-name', voice.name);
                 voiceSelect.appendChild(option);
+                
+                // Add to popup menu
+                let voiceItem = document.createElement('div');
+                voiceItem.textContent = voice.name;
+                voiceItem.style.cssText = `
+                    padding: 10px 12px;
+                    cursor: pointer;
+                    border-radius: 8px;
+                    font-size: 13px;
+                    color: #ffffff;
+                    transition: all 0.2s ease;
+                    ${selectedVoice === voice.name ? 'background: rgba(74, 158, 255, 0.3); font-weight: 600;' : ''}
+                `;
+                voiceItem.onmouseover = () => {
+                    if (selectedVoice !== voice.name) {
+                        voiceItem.style.background = 'rgba(255, 255, 255, 0.1)';
+                    }
+                };
+                voiceItem.onmouseout = () => {
+                    if (selectedVoice !== voice.name) {
+                        voiceItem.style.background = 'transparent';
+                    }
+                };
+                voiceItem.onclick = () => {
+                    voiceSelect.value = voice.name;
+                    localStorage.setItem('selectedVoice', voice.name);
+                    voicePopup.style.display = 'none';
+                    
+                    // Update all voice items
+                    Array.from(voicePopup.children).forEach(item => {
+                        if (item.textContent === voice.name) {
+                            item.style.background = 'rgba(74, 158, 255, 0.3)';
+                            item.style.fontWeight = '600';
+                        } else {
+                            item.style.background = 'transparent';
+                            item.style.fontWeight = 'normal';
+                        }
+                    });
+                };
+                voicePopup.appendChild(voiceItem);
             });
-            let selectedVoice = localStorage.getItem('selectedVoice');
+            
             if (selectedVoice) {
                 voiceSelect.value = selectedVoice;
             }
@@ -540,10 +673,6 @@ function populateVoiceList() {
         .catch(error => {
             log('Error retrieving voices:', error);
         });
-
-    voiceSelect.addEventListener('change', function () {
-        localStorage.setItem('selectedVoice', voiceSelect.value);
-    });
 }
 
 function getThemeFromCookie() {
