@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      4.0
-// @description  TTS score announcer with modern glassmorphism UI - Option A for crex.com
+// @version      4.1
+// @description  TTS score announcer with fixed voice loading in popup for crex.com
 // @author       You
 // @match        https://crex.com/*
 // @icon         https://crex.com/assets/icon/favicon.ico
@@ -313,10 +313,18 @@ function initScript() {
 
         // Toggle voice popup
         let isPopupOpen = false;
+        let voicesPopulated = false;
+        
         voiceIconBtn.onclick = (e) => {
             e.stopPropagation();
             isPopupOpen = !isPopupOpen;
             voicePopup.style.display = isPopupOpen ? 'block' : 'none';
+            
+            // Populate voices when opening popup if not already done
+            if (isPopupOpen && !voicesPopulated) {
+                voicePopup.innerHTML = '<div style="padding: 10px; color: #fff; text-align: center;">Loading voices...</div>';
+                populateVoiceListNow();
+            }
         };
 
         // Close popup when clicking outside
@@ -326,6 +334,77 @@ function initScript() {
                 isPopupOpen = false;
             }
         });
+
+        function populateVoiceListNow() {
+            getVoices().then(voices => {
+                voicePopup.innerHTML = ''; // Clear loading message
+                let selectedVoice = localStorage.getItem('selectedVoice');
+                
+                if (voices.length === 0) {
+                    voicePopup.innerHTML = '<div style="padding: 10px; color: #fff; text-align: center;">No voices available</div>';
+                    return;
+                }
+                
+                voices.forEach(voice => {
+                    // Add to hidden select
+                    let option = document.createElement('option');
+                    option.textContent = voice.name;
+                    option.setAttribute('data-lang', voice.lang);
+                    option.setAttribute('data-name', voice.name);
+                    voiceSelector.appendChild(option);
+                    
+                    // Add to popup menu
+                    let voiceItem = document.createElement('div');
+                    voiceItem.textContent = voice.name;
+                    voiceItem.style.cssText = `
+                        padding: 10px 12px;
+                        cursor: pointer;
+                        border-radius: 8px;
+                        font-size: 13px;
+                        color: #ffffff;
+                        transition: all 0.2s ease;
+                        ${selectedVoice === voice.name ? 'background: rgba(74, 158, 255, 0.3); font-weight: 600;' : ''}
+                    `;
+                    voiceItem.onmouseover = () => {
+                        if (selectedVoice !== voice.name) {
+                            voiceItem.style.background = 'rgba(255, 255, 255, 0.1)';
+                        }
+                    };
+                    voiceItem.onmouseout = () => {
+                        if (selectedVoice !== voice.name) {
+                            voiceItem.style.background = 'transparent';
+                        }
+                    };
+                    voiceItem.onclick = () => {
+                        voiceSelector.value = voice.name;
+                        localStorage.setItem('selectedVoice', voice.name);
+                        voicePopup.style.display = 'none';
+                        isPopupOpen = false;
+                        
+                        // Update all voice items
+                        Array.from(voicePopup.children).forEach(item => {
+                            if (item.textContent === voice.name) {
+                                item.style.background = 'rgba(74, 158, 255, 0.3)';
+                                item.style.fontWeight = '600';
+                            } else {
+                                item.style.background = 'transparent';
+                                item.style.fontWeight = 'normal';
+                            }
+                        });
+                    };
+                    voicePopup.appendChild(voiceItem);
+                });
+                
+                if (selectedVoice) {
+                    voiceSelector.value = selectedVoice;
+                }
+                
+                voicesPopulated = true;
+            }).catch(error => {
+                voicePopup.innerHTML = '<div style="padding: 10px; color: #f88; text-align: center;">Error loading voices</div>';
+                log('Error retrieving voices:', error);
+            });
+        }
 
         voiceIconWrapper.appendChild(voiceIconBtn);
         voiceIconWrapper.appendChild(voicePopup);
