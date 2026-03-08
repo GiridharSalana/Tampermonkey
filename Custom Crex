@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      4.7
+// @version      5.0
 // @description  TTS score announcer with modern glassmorphism UI and modal voice selector for crex.com
 // @author       You
 // @match        https://crex.com/*
@@ -53,6 +53,7 @@ let scoreObserver = null;
 let urlObserver = null;
 let lastUrl = location.href;
 let initialized = false;
+let muteKeyHandler = null; // Store keydown handler reference
 
 function log(...args) {
     console.log(LOG_PREFIX, ...args);
@@ -83,6 +84,11 @@ function initializeScript() {
 }
 
 function injectUIFixes() {
+    // Check if style already exists
+    if (document.getElementById('crex-ui-fixes')) {
+        return;
+    }
+    
     const style = document.createElement('style');
     style.id = 'crex-ui-fixes';
     style.textContent = `
@@ -217,8 +223,29 @@ function cleanup() {
         scoreObserver.disconnect();
         scoreObserver = null;
     }
+    
+    // Remove keydown listener
+    if (muteKeyHandler) {
+        document.removeEventListener('keydown', muteKeyHandler);
+        muteKeyHandler = null;
+    }
+    
+    // Remove TTS controls
     const existing = document.getElementById('crex-tts-controls');
     if (existing) existing.remove();
+    
+    // Remove modal overlay
+    const modal = document.getElementById('voice-modal-overlay');
+    if (modal) modal.remove();
+    
+    // Remove hidden voice selector
+    const voiceSelect = document.getElementById('voiceSelect');
+    if (voiceSelect) voiceSelect.remove();
+    
+    // Remove scrollbar style
+    const scrollbarStyle = document.getElementById('voice-list-scrollbar-style');
+    if (scrollbarStyle) scrollbarStyle.remove();
+    
     initialized = false;
 }
 
@@ -371,6 +398,7 @@ function initScript() {
         
         // Custom scrollbar styling
         const scrollbarStyle = document.createElement('style');
+        scrollbarStyle.id = 'voice-list-scrollbar-style';
         scrollbarStyle.textContent = `
             #voice-list::-webkit-scrollbar {
                 width: 8px;
@@ -388,7 +416,9 @@ function initScript() {
                 background: rgba(255, 255, 255, 0.5);
             }
         `;
-        document.head.appendChild(scrollbarStyle);
+        if (!document.getElementById('voice-list-scrollbar-style')) {
+            document.head.appendChild(scrollbarStyle);
+        }
 
         modalContent.appendChild(modalHeader);
         modalContent.appendChild(voiceList);
@@ -473,12 +503,12 @@ function initScript() {
                         ${selectedVoice === voice.name ? 'background: rgba(74, 158, 255, 0.4); font-weight: 600; border: 1px solid rgba(74, 158, 255, 0.6);' : 'border: 1px solid transparent;'}
                     `;
                     voiceItem.onmouseover = () => {
-                        if (selectedVoice !== voice.name) {
+                        if (voiceSelector.value !== voice.name) {
                             voiceItem.style.background = 'rgba(255, 255, 255, 0.1)';
                         }
                     };
                     voiceItem.onmouseout = () => {
-                        if (selectedVoice !== voice.name) {
+                        if (voiceSelector.value !== voice.name) {
                             voiceItem.style.background = 'transparent';
                         }
                     };
@@ -625,11 +655,18 @@ function initScript() {
             }
         });
 
-        document.addEventListener('keydown', function (event) {
+        // Keydown listener for 'M' key - prevent duplicates
+        if (muteKeyHandler) {
+            document.removeEventListener('keydown', muteKeyHandler);
+        }
+        
+        muteKeyHandler = function (event) {
             if (event.key === 'm' || event.key === 'M') {
                 muteButton.click();
             }
-        });
+        };
+        
+        document.addEventListener('keydown', muteKeyHandler);
 
         volumeSlider.addEventListener('input', function () {
             volume = volumeSlider.value;
@@ -638,28 +675,6 @@ function initScript() {
 
         setupScoreMonitor();
     }).catch(err => log('Container not found:', err.message));
-}
-
-function updateMuteUI(btn1, btn2) {
-    // Legacy function kept for compatibility
-    if (btn1) {
-        if (isMute) {
-            btn1.textContent = "🔇";
-            btn1.setAttribute("title", "Muted");
-        } else {
-            btn1.textContent = "🔊";
-            btn1.setAttribute("title", "UnMuted");
-        }
-    }
-    if (btn2) {
-        if (isMute) {
-            btn2.textContent = "🔇";
-            btn2.setAttribute("title", "Muted");
-        } else {
-            btn2.textContent = "🔊";
-            btn2.setAttribute("title", "UnMuted");
-        }
-    }
 }
 
 function setupScoreMonitor() {
