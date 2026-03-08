@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      2.9
-// @description  TTS score announcer with controls positioned AFTER header for crex.com
+// @version      3.0
+// @description  TTS score announcer - restored to original working location, clean single line
 // @author       You
 // @match        https://crex.com/*
 // @icon         https://crex.com/assets/icon/favicon.ico
@@ -40,7 +40,7 @@ volume = volume !== null ? volume : '50';
 isMute = isMute === 'true';
 
 const SELECTORS = {
-    container_div: '.live-score-header.mob-none',
+    container_div: '.live-score-header.mob-none app-match-details-wrapper .team-result > div',
     score_element: '.live-score-header.mob-none app-match-details-wrapper .team-result > div > span',
     score_runs: '.live-score-header.mob-none app-match-details-wrapper .team-score > div > span:first-child',
     score_overs: '.live-score-header.mob-none app-match-details-wrapper .team-score > div > span:nth-child(2)',
@@ -236,21 +236,17 @@ function initScript() {
         }
         
         var myDiv = element;
-        
-        // Don't modify the header itself, insert after it
+        myDiv.style.display = "flex";
+        myDiv.style.flexDirection = "column";
+
         const controlsContainer = document.createElement("div");
         controlsContainer.id = 'crex-tts-controls';
         controlsContainer.style.cssText = `
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 10px 20px;
-            gap: 20px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 6px;
-            margin: 15px auto;
-            width: fit-content;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            padding: 8px;
+            gap: 15px;
         `;
 
         // Mute button
@@ -271,8 +267,8 @@ function initScript() {
         const voiceSelector = document.createElement('select');
         voiceSelector.id = 'voiceSelect';
         voiceSelector.style.cssText = `
-            padding: 8px 14px;
-            border-radius: 5px;
+            padding: 6px 10px;
+            border-radius: 4px;
             border: 1px solid rgba(255, 255, 255, 0.3);
             background-color: rgba(255, 255, 255, 0.15);
             color: #ffffff;
@@ -280,8 +276,7 @@ function initScript() {
             font-weight: 500;
             cursor: pointer;
             outline: none;
-            min-width: 180px;
-            max-width: 220px;
+            min-width: 160px;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
         `;
 
@@ -304,8 +299,7 @@ function initScript() {
         volumeSlider.max = '100';
         volumeSlider.value = volume;
         volumeSlider.style.cssText = `
-            width: 120px;
-            height: 5px;
+            width: 100px;
             cursor: pointer;
             accent-color: #4a9eff;
         `;
@@ -322,8 +316,7 @@ function initScript() {
         controlsContainer.appendChild(muteButton);
         controlsContainer.appendChild(volumeContainer);
 
-        // Insert AFTER the header element, not inside it
-        myDiv.parentNode.insertBefore(controlsContainer, myDiv.nextSibling);
+        myDiv.insertBefore(controlsContainer, myDiv.firstChild);
 
         function updateMuteUI() {
             if (isMute) {
