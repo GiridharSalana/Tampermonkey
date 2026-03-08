@@ -1,14 +1,35 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      1.8
-// @description  TTS score announcer with proper theme persistence fix for crex.com
+// @version      2.4
+// @description  TTS score announcer with centered mute button layout for crex.com
 // @author       You
 // @match        https://crex.com/*
 // @icon         https://crex.com/assets/icon/favicon.ico
 // @grant        none
-// @run-at       document-idle
+// @run-at       document-start
 // ==/UserScript==
+
+// IMMEDIATE THEME FIX - Runs before page renders to prevent flicker
+(function() {
+    'use strict';
+    
+    function getThemeFromCookie() {
+        const cookie = document.cookie.split('; ').find(row => row.startsWith('system-theme='));
+        return cookie ? cookie.split('=')[1] : null;
+    }
+    
+    function setThemeCookie(theme) {
+        const expires = new Date();
+        expires.setFullYear(expires.getFullYear() + 1);
+        document.cookie = `system-theme=${theme}; expires=${expires.toUTCString()}; path=/`;
+    }
+    
+    const savedTheme = getThemeFromCookie();
+    if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+})();
 
 var isMute = localStorage.getItem('isMute');
 var volume = localStorage.getItem('volume');
@@ -40,6 +61,16 @@ function log(...args) {
 (function () {
     'use strict';
 
+    // Wait for DOM to be ready since we're running at document-start
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeScript);
+    } else {
+        initializeScript();
+    }
+})();
+
+function initializeScript() {
+    injectUIFixes();
     fixThemePersistence();
 
     if (!window.location.pathname.startsWith('/scoreboard/')) {
@@ -49,7 +80,106 @@ function log(...args) {
     }
 
     initScript();
-})();
+}
+
+function injectUIFixes() {
+    const style = document.createElement('style');
+    style.id = 'crex-ui-fixes';
+    style.textContent = `
+        /* Center and balance the main content area */
+        .match-detail-container,
+        .match-info-container,
+        .scorecard-container {
+            max-width: 1200px;
+            margin: 0 auto !important;
+            padding: 0 20px;
+        }
+        
+        /* Center the commentary section */
+        .commentary-section,
+        app-commentary {
+            max-width: 1200px;
+            margin: 0 auto !important;
+            padding: 0 20px;
+        }
+        
+        /* Balance the player cards section */
+        .player-cards-wrapper,
+        .player-of-match {
+            display: flex;
+            justify-content: center !important;
+            align-items: center;
+            margin: 0 auto;
+        }
+        
+        /* Center the probability section */
+        .probability-container {
+            max-width: 1200px;
+            margin: 0 auto !important;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        /* Fix tab content centering */
+        .tab-content,
+        .match-detail-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        
+        /* Center scorecard tables */
+        .scorecard-table,
+        table.scorecard {
+            margin: 0 auto !important;
+        }
+        
+        /* Balance team stats */
+        .team-stats-wrapper {
+            max-width: 1200px;
+            margin: 0 auto !important;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        
+        /* Center match info sections */
+        .match-info-section {
+            max-width: 1200px;
+            margin: 0 auto !important;
+            text-align: center;
+        }
+        
+        /* Fix angular component centering */
+        app-match-info,
+        app-scorecard,
+        app-live-score {
+            display: block;
+            max-width: 1200px;
+            margin: 0 auto !important;
+        }
+        
+        /* Center the main content wrapper */
+        .main-content,
+        .content-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+    `;
+    
+    if (document.head) {
+        document.head.appendChild(style);
+        log('UI fixes injected');
+    } else {
+        document.addEventListener('DOMContentLoaded', () => {
+            document.head.appendChild(style);
+            log('UI fixes injected (delayed)');
+        });
+    }
+}
 
 function monitorUrlChanges() {
     if (urlObserver) {
@@ -75,8 +205,6 @@ function cleanup() {
     }
     const existing = document.getElementById('crex-tts-controls');
     if (existing) existing.remove();
-    const existingSlider = document.getElementById('crex-volume-container');
-    if (existingSlider) existingSlider.remove();
     initialized = false;
 }
 
@@ -88,7 +216,7 @@ function initScript() {
     waitForElementToExist(SELECTORS.container_div).then(element => {
         log('Found container, injecting controls...');
         
-        if (document.getElementById('crex-tts-controls') || document.getElementById('crex-volume-container')) {
+        if (document.getElementById('crex-tts-controls')) {
             log('Controls already exist, skipping injection...');
             return;
         }
@@ -97,79 +225,114 @@ function initScript() {
         myDiv.style.display = "flex";
         myDiv.style.flexDirection = "column";
 
-        const voiceSelector_Elem = document.createElement("div");
+        const controlsContainer = document.createElement("div");
+        controlsContainer.id = 'crex-tts-controls';
+        controlsContainer.style.cssText = `
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 16px;
+            gap: 15px;
+            background: transparent;
+            margin: 4px 0;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        `;
+
+        // Mute button
+        const muteButton = document.createElement("div");
+        muteButton.textContent = "🔇";
+        muteButton.id = "mute-btn";
+        muteButton.style.cssText = `
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 18px;
+            transition: transform 0.2s;
+            opacity: 0.9;
+        `;
+        muteButton.onmouseover = () => { muteButton.style.transform = 'scale(1.15)'; muteButton.style.opacity = '1'; };
+        muteButton.onmouseout = () => { muteButton.style.transform = 'scale(1)'; muteButton.style.opacity = '0.9'; };
+
+        // Voice selector
         const voiceSelector = document.createElement('select');
         voiceSelector.id = 'voiceSelect';
-        voiceSelector.className = "none";
-        voiceSelector_Elem.appendChild(voiceSelector);
+        voiceSelector.style.cssText = `
+            padding: 6px 10px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background-color: rgba(255, 255, 255, 0.05);
+            color: inherit;
+            font-size: 12px;
+            cursor: pointer;
+            outline: none;
+            min-width: 150px;
+            max-width: 180px;
+        `;
 
-        const TopElement = document.createElement("div");
-        TopElement.id = 'crex-tts-controls';
-        TopElement.style.display = 'flex';
-        TopElement.style.alignItems = 'center';
-        TopElement.style.padding = '10px';
-
-        const newElement_1 = document.createElement("div");
-        newElement_1.textContent = "🔇";
-        newElement_1.id = "mute-btn-1";
-        newElement_1.style.cursor = "pointer";
-        newElement_1.style.padding = '10px';
-
-        const newElement_2 = document.createElement("div");
-        newElement_2.textContent = "🔇";
-        newElement_2.id = "mute-btn-2";
-        newElement_2.style.cursor = "pointer";
-        newElement_2.style.padding = '10px';
-
-        const volumeSliderContainer = document.createElement('div');
-        volumeSliderContainer.id = 'crex-volume-container';
-        volumeSliderContainer.className = 'volume-slider-container';
+        // Volume slider container
+        const volumeContainer = document.createElement('div');
+        volumeContainer.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        `;
 
         const lowVolumeIcon = document.createElement('span');
-        lowVolumeIcon.className = 'volume-icon';
         lowVolumeIcon.textContent = '🔉';
+        lowVolumeIcon.style.cssText = 'font-size: 16px; opacity: 0.8;';
 
         const volumeSlider = document.createElement('input');
         volumeSlider.type = 'range';
-        volumeSlider.className = 'volume-slider';
+        volumeSlider.id = 'volume-slider';
         volumeSlider.min = '0';
         volumeSlider.max = '100';
         volumeSlider.value = volume;
+        volumeSlider.style.cssText = `
+            width: 100px;
+            height: 4px;
+            cursor: pointer;
+            accent-color: #4a9eff;
+        `;
 
         const highVolumeIcon = document.createElement('span');
-        highVolumeIcon.className = 'volume-icon';
         highVolumeIcon.textContent = '🔊';
+        highVolumeIcon.style.cssText = 'font-size: 16px; opacity: 0.8;';
 
-        volumeSliderContainer.appendChild(lowVolumeIcon);
-        volumeSliderContainer.appendChild(volumeSlider);
-        volumeSliderContainer.appendChild(highVolumeIcon);
+        volumeContainer.appendChild(lowVolumeIcon);
+        volumeContainer.appendChild(volumeSlider);
+        volumeContainer.appendChild(highVolumeIcon);
 
-        volumeSliderContainer.style.display = 'flex';
-        volumeSliderContainer.style.alignItems = 'center';
+        controlsContainer.appendChild(voiceSelector);
+        controlsContainer.appendChild(muteButton);
+        controlsContainer.appendChild(volumeContainer);
 
-        TopElement.appendChild(newElement_1);
-        TopElement.appendChild(voiceSelector_Elem);
-        TopElement.appendChild(newElement_2);
+        myDiv.insertBefore(controlsContainer, myDiv.firstChild);
 
-        myDiv.insertBefore(TopElement, myDiv.firstChild);
-        myDiv.insertBefore(volumeSliderContainer, myDiv.firstChild.nextSibling);
+        function updateMuteUI() {
+            if (isMute) {
+                muteButton.textContent = "🔇";
+                muteButton.setAttribute("title", "Unmute (Press M)");
+            } else {
+                muteButton.textContent = "🔊";
+                muteButton.setAttribute("title", "Mute (Press M)");
+            }
+        }
 
-        updateMuteUI(newElement_1, newElement_2);
+        updateMuteUI();
 
-        function spanClickEvent() {
+        muteButton.addEventListener("click", function() {
             isMute = !isMute;
             localStorage.setItem('isMute', isMute);
-            updateMuteUI(newElement_1, newElement_2);
+            updateMuteUI();
             if (isMute) {
                 window.speechSynthesis.cancel();
             }
-        }
-        newElement_1.addEventListener("click", spanClickEvent);
-        newElement_2.addEventListener("click", spanClickEvent);
+        });
 
         document.addEventListener('keydown', function (event) {
-            if (event.key === 'm') {
-                newElement_1.click();
+            if (event.key === 'm' || event.key === 'M') {
+                muteButton.click();
             }
         });
 
@@ -185,16 +348,24 @@ function initScript() {
 }
 
 function updateMuteUI(btn1, btn2) {
-    if (isMute) {
-        btn1.textContent = "🔇";
-        btn2.textContent = "🔇";
-        btn1.setAttribute("title", "Muted");
-        btn2.setAttribute("title", "Muted");
-    } else {
-        btn1.textContent = "🔊";
-        btn2.textContent = "🔊";
-        btn1.setAttribute("title", "UnMuted");
-        btn2.setAttribute("title", "UnMuted");
+    // Legacy function kept for compatibility
+    if (btn1) {
+        if (isMute) {
+            btn1.textContent = "🔇";
+            btn1.setAttribute("title", "Muted");
+        } else {
+            btn1.textContent = "🔊";
+            btn1.setAttribute("title", "UnMuted");
+        }
+    }
+    if (btn2) {
+        if (isMute) {
+            btn2.textContent = "🔇";
+            btn2.setAttribute("title", "Muted");
+        } else {
+            btn2.textContent = "🔊";
+            btn2.setAttribute("title", "UnMuted");
+        }
     }
 }
 
@@ -375,26 +546,22 @@ function setThemeCookie(theme) {
 }
 
 function fixThemePersistence() {
-    log('Checking theme persistence...');
+    log('Setting up theme monitoring...');
     
     const cookieTheme = getThemeFromCookie();
     const htmlTheme = document.documentElement.getAttribute('data-theme');
     
-    if (cookieTheme) {
-        log('Found theme in cookie:', cookieTheme);
-        if (htmlTheme !== cookieTheme) {
-            log('Applying theme from cookie to HTML...');
-            document.documentElement.setAttribute('data-theme', cookieTheme);
-        }
-    } else if (htmlTheme) {
-        log('No cookie found, but HTML has theme:', htmlTheme, '- Setting cookie...');
+    // Save cookie if we have a theme but no cookie
+    if (htmlTheme && !cookieTheme) {
+        log('Saving current theme to cookie:', htmlTheme);
         setThemeCookie(htmlTheme);
-    } else {
-        log('No theme found, using default: light');
+    } else if (!htmlTheme && !cookieTheme) {
+        log('No theme found, setting default: light');
         setThemeCookie('light');
         document.documentElement.setAttribute('data-theme', 'light');
     }
     
+    // Monitor for theme changes
     const observer = new MutationObserver((mutations) => {
         for (let mutation of mutations) {
             if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
