@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      2.8
-// @description  TTS score announcer with correct positioning below content for crex.com
+// @version      2.9
+// @description  TTS score announcer with controls positioned AFTER header for crex.com
 // @author       You
 // @match        https://crex.com/*
 // @icon         https://crex.com/assets/icon/favicon.ico
@@ -40,7 +40,7 @@ volume = volume !== null ? volume : '50';
 isMute = isMute === 'true';
 
 const SELECTORS = {
-    container_div: '.live-score-header.mob-none app-match-details-wrapper .team-result > div',
+    container_div: '.live-score-header.mob-none',
     score_element: '.live-score-header.mob-none app-match-details-wrapper .team-result > div > span',
     score_runs: '.live-score-header.mob-none app-match-details-wrapper .team-score > div > span:first-child',
     score_overs: '.live-score-header.mob-none app-match-details-wrapper .team-score > div > span:nth-child(2)',
@@ -236,13 +236,8 @@ function initScript() {
         }
         
         var myDiv = element;
-        myDiv.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-        `;
-
+        
+        // Don't modify the header itself, insert after it
         const controlsContainer = document.createElement("div");
         controlsContainer.id = 'crex-tts-controls';
         controlsContainer.style.cssText = `
@@ -256,9 +251,6 @@ function initScript() {
             margin: 15px auto;
             width: fit-content;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-            position: relative;
-            z-index: 100;
-            clear: both;
         `;
 
         // Mute button
@@ -330,7 +322,8 @@ function initScript() {
         controlsContainer.appendChild(muteButton);
         controlsContainer.appendChild(volumeContainer);
 
-        myDiv.appendChild(controlsContainer);
+        // Insert AFTER the header element, not inside it
+        myDiv.parentNode.insertBefore(controlsContainer, myDiv.nextSibling);
 
         function updateMuteUI() {
             if (isMute) {
