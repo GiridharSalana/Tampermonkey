@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      2.5
+// @version      2.6
 // @description  TTS score announcer with centered mute button layout for crex.com
 // @author       You
 // @match        https://crex.com/*
