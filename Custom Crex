@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      4.4
+// @version      4.5
 // @description  TTS score announcer with modern glassmorphism UI and modal voice selector for crex.com
 // @author       You
 // @match        https://crex.com/*
@@ -366,7 +366,29 @@ function initScript() {
             max-height: 400px;
             overflow-y: auto;
             margin-top: 16px;
+            padding-right: 8px;
         `;
+        
+        // Custom scrollbar styling
+        const scrollbarStyle = document.createElement('style');
+        scrollbarStyle.textContent = `
+            #voice-list::-webkit-scrollbar {
+                width: 8px;
+            }
+            #voice-list::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 4px;
+            }
+            #voice-list::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.3);
+                border-radius: 4px;
+                transition: background 0.3s ease;
+            }
+            #voice-list::-webkit-scrollbar-thumb:hover {
+                background: rgba(255, 255, 255, 0.5);
+            }
+        `;
+        document.head.appendChild(scrollbarStyle);
 
         modalContent.appendChild(modalHeader);
         modalContent.appendChild(voiceList);
@@ -393,6 +415,7 @@ function initScript() {
             e.stopPropagation();
             isModalOpen = true;
             modalOverlay.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Prevent background scroll
             
             // Populate voices when opening modal if not already done
             if (!voicesPopulated) {
@@ -405,12 +428,14 @@ function initScript() {
         closeBtn.onclick = () => {
             modalOverlay.style.display = 'none';
             isModalOpen = false;
+            document.body.style.overflow = ''; // Re-enable background scroll
         };
 
         modalOverlay.onclick = (e) => {
             if (e.target === modalOverlay) {
                 modalOverlay.style.display = 'none';
                 isModalOpen = false;
+                document.body.style.overflow = ''; // Re-enable background scroll
             }
         };
 
@@ -460,6 +485,7 @@ function initScript() {
                         localStorage.setItem('selectedVoice', voice.name);
                         modalOverlay.style.display = 'none';
                         isModalOpen = false;
+                        document.body.style.overflow = ''; // Re-enable background scroll
                         
                         // Update all voice items
                         Array.from(voiceList.children).forEach(item => {
