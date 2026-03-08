@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      2.8
+// @version      2.9
 // @description  TTS score announcer with centered mute button layout for crex.com
 // @author       You
 // @match        https://crex.com/*
@@ -302,6 +302,14 @@ function initScript() {
         placeholderOption.selected = true;
         voiceSelector.appendChild(placeholderOption);
 
+        voiceSelector.onchange = function () {
+            if (voiceSelector.value === '__retry__') {
+                populateVoiceList();
+                return;
+            }
+            localStorage.setItem('selectedVoice', voiceSelector.value);
+        };
+
         // Volume slider container
         const volumeContainer = document.createElement('div');
         volumeContainer.style.cssText = `
@@ -596,6 +604,14 @@ function populateVoiceList(retries = 5) {
 
             if (voices.length) {
                 voiceSelect.disabled = false;
+            } else {
+                // Provide a way to retry if the browser fails to load voices.
+                const retryOption = document.createElement('option');
+                retryOption.textContent = 'Retry loading voices';
+                retryOption.value = '__retry__';
+                retryOption.disabled = false;
+                voiceSelect.appendChild(retryOption);
+                voiceSelect.disabled = false;
             }
 
             let selectedVoice = localStorage.getItem('selectedVoice');
@@ -611,11 +627,14 @@ function populateVoiceList(retries = 5) {
             errorOption.disabled = true;
             errorOption.selected = true;
             voiceSelect.appendChild(errorOption);
+            const retryOption = document.createElement('option');
+            retryOption.textContent = 'Retry loading voices';
+            retryOption.value = '__retry__';
+            retryOption.disabled = false;
+            voiceSelect.appendChild(retryOption);
+            voiceSelect.disabled = false;
         });
 
-    voiceSelect.addEventListener('change', function () {
-        localStorage.setItem('selectedVoice', voiceSelect.value);
-    });
 }
 
 function getThemeFromCookie() {
