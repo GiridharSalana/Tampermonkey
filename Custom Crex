@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      4.1
-// @description  TTS score announcer with fixed voice loading in popup for crex.com
+// @version      4.2
+// @description  TTS score announcer with centered modal voice selector for crex.com
 // @author       You
 // @match        https://crex.com/*
 // @icon         https://crex.com/assets/icon/favicon.ico
@@ -258,10 +258,7 @@ function initScript() {
             margin-right: auto;
         `;
 
-        // Voice icon button with popup
-        const voiceIconWrapper = document.createElement("div");
-        voiceIconWrapper.style.cssText = `position: relative;`;
-        
+        // Voice icon button
         const voiceIconBtn = document.createElement("div");
         voiceIconBtn.id = "voice-icon-btn";
         voiceIconBtn.textContent = "🎤";
@@ -285,63 +282,135 @@ function initScript() {
             voiceIconBtn.style.transform = 'scale(1)';
         };
 
-        // Voice popup menu
-        const voicePopup = document.createElement("div");
-        voicePopup.id = 'voice-popup';
-        voicePopup.style.cssText = `
-            position: absolute;
-            bottom: calc(100% + 10px);
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(20, 20, 35, 0.98);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
-            padding: 8px;
-            max-height: 250px;
-            overflow-y: auto;
-            min-width: 240px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+        // Modal overlay
+        const modalOverlay = document.createElement("div");
+        modalOverlay.id = 'voice-modal-overlay';
+        modalOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
             display: none;
-            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            z-index: 100000;
+            animation: fadeIn 0.2s ease;
         `;
+
+        // Modal content
+        const modalContent = document.createElement("div");
+        modalContent.id = 'voice-modal-content';
+        modalContent.style.cssText = `
+            background: rgba(30, 30, 45, 0.98);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            max-height: 500px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            animation: slideIn 0.3s ease;
+        `;
+
+        // Modal header
+        const modalHeader = document.createElement("div");
+        modalHeader.style.cssText = `
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        `;
+
+        const modalTitle = document.createElement("h3");
+        modalTitle.textContent = "Select Voice";
+        modalTitle.style.cssText = `
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+        `;
+
+        const closeBtn = document.createElement("div");
+        closeBtn.textContent = "✕";
+        closeBtn.style.cssText = `
+            cursor: pointer;
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.6);
+            transition: all 0.2s ease;
+            padding: 4px 8px;
+            border-radius: 4px;
+        `;
+        closeBtn.onmouseover = () => {
+            closeBtn.style.color = '#ffffff';
+            closeBtn.style.background = 'rgba(255, 255, 255, 0.1)';
+        };
+        closeBtn.onmouseout = () => {
+            closeBtn.style.color = 'rgba(255, 255, 255, 0.6)';
+            closeBtn.style.background = 'transparent';
+        };
+
+        modalHeader.appendChild(modalTitle);
+        modalHeader.appendChild(closeBtn);
+
+        // Voice list container
+        const voiceList = document.createElement("div");
+        voiceList.id = 'voice-list';
+        voiceList.style.cssText = `
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 16px;
+        `;
+
+        modalContent.appendChild(modalHeader);
+        modalContent.appendChild(voiceList);
+        modalOverlay.appendChild(modalContent);
+        document.body.appendChild(modalOverlay);
 
         // Hidden select for voice data
         const voiceSelector = document.createElement('select');
         voiceSelector.id = 'voiceSelect';
         voiceSelector.style.display = 'none';
 
-        // Toggle voice popup
-        let isPopupOpen = false;
+        // Toggle modal
+        let isModalOpen = false;
         let voicesPopulated = false;
         
         voiceIconBtn.onclick = (e) => {
             e.stopPropagation();
-            isPopupOpen = !isPopupOpen;
-            voicePopup.style.display = isPopupOpen ? 'block' : 'none';
+            isModalOpen = true;
+            modalOverlay.style.display = 'flex';
             
-            // Populate voices when opening popup if not already done
-            if (isPopupOpen && !voicesPopulated) {
-                voicePopup.innerHTML = '<div style="padding: 10px; color: #fff; text-align: center;">Loading voices...</div>';
+            // Populate voices when opening modal if not already done
+            if (!voicesPopulated) {
+                voiceList.innerHTML = '<div style="padding: 20px; color: #fff; text-align: center;">Loading voices...</div>';
                 populateVoiceListNow();
             }
         };
 
-        // Close popup when clicking outside
-        document.addEventListener('click', (e) => {
-            if (isPopupOpen && !voiceIconWrapper.contains(e.target)) {
-                voicePopup.style.display = 'none';
-                isPopupOpen = false;
+        // Close modal
+        closeBtn.onclick = () => {
+            modalOverlay.style.display = 'none';
+            isModalOpen = false;
+        };
+
+        modalOverlay.onclick = (e) => {
+            if (e.target === modalOverlay) {
+                modalOverlay.style.display = 'none';
+                isModalOpen = false;
             }
-        });
+        };
 
         function populateVoiceListNow() {
             getVoices().then(voices => {
-                voicePopup.innerHTML = ''; // Clear loading message
+                voiceList.innerHTML = ''; // Clear loading message
                 let selectedVoice = localStorage.getItem('selectedVoice');
                 
                 if (voices.length === 0) {
-                    voicePopup.innerHTML = '<div style="padding: 10px; color: #fff; text-align: center;">No voices available</div>';
+                    voiceList.innerHTML = '<div style="padding: 20px; color: #fff; text-align: center;">No voices available</div>';
                     return;
                 }
                 
@@ -353,17 +422,18 @@ function initScript() {
                     option.setAttribute('data-name', voice.name);
                     voiceSelector.appendChild(option);
                     
-                    // Add to popup menu
+                    // Add to modal list
                     let voiceItem = document.createElement('div');
                     voiceItem.textContent = voice.name;
                     voiceItem.style.cssText = `
-                        padding: 10px 12px;
+                        padding: 12px 16px;
                         cursor: pointer;
-                        border-radius: 8px;
-                        font-size: 13px;
+                        border-radius: 10px;
+                        font-size: 14px;
                         color: #ffffff;
                         transition: all 0.2s ease;
-                        ${selectedVoice === voice.name ? 'background: rgba(74, 158, 255, 0.3); font-weight: 600;' : ''}
+                        margin-bottom: 8px;
+                        ${selectedVoice === voice.name ? 'background: rgba(74, 158, 255, 0.4); font-weight: 600; border: 1px solid rgba(74, 158, 255, 0.6);' : 'border: 1px solid transparent;'}
                     `;
                     voiceItem.onmouseover = () => {
                         if (selectedVoice !== voice.name) {
@@ -378,21 +448,23 @@ function initScript() {
                     voiceItem.onclick = () => {
                         voiceSelector.value = voice.name;
                         localStorage.setItem('selectedVoice', voice.name);
-                        voicePopup.style.display = 'none';
-                        isPopupOpen = false;
+                        modalOverlay.style.display = 'none';
+                        isModalOpen = false;
                         
                         // Update all voice items
-                        Array.from(voicePopup.children).forEach(item => {
+                        Array.from(voiceList.children).forEach(item => {
                             if (item.textContent === voice.name) {
-                                item.style.background = 'rgba(74, 158, 255, 0.3)';
+                                item.style.background = 'rgba(74, 158, 255, 0.4)';
                                 item.style.fontWeight = '600';
+                                item.style.border = '1px solid rgba(74, 158, 255, 0.6)';
                             } else {
                                 item.style.background = 'transparent';
                                 item.style.fontWeight = 'normal';
+                                item.style.border = '1px solid transparent';
                             }
                         });
                     };
-                    voicePopup.appendChild(voiceItem);
+                    voiceList.appendChild(voiceItem);
                 });
                 
                 if (selectedVoice) {
@@ -401,13 +473,12 @@ function initScript() {
                 
                 voicesPopulated = true;
             }).catch(error => {
-                voicePopup.innerHTML = '<div style="padding: 10px; color: #f88; text-align: center;">Error loading voices</div>';
+                voiceList.innerHTML = '<div style="padding: 20px; color: #ff8888; text-align: center;">Error loading voices</div>';
                 log('Error retrieving voices:', error);
             });
         }
 
         voiceIconWrapper.appendChild(voiceIconBtn);
-        voiceIconWrapper.appendChild(voicePopup);
 
         // Volume slider container with modern styling
         const volumeContainer = document.createElement('div');
