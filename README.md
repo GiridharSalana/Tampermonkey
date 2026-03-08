@@ -1,75 +1,147 @@
 # Tampermonkey Scripts
 
-## Custom Crex (v1.9)
+## Custom Crex (v4.2) 🎤🏏
 
-A Tampermonkey userscript for crex.com that adds TTS (Text-to-Speech) score announcements and fixes theme persistence for live cricket matches.
+A modern, feature-rich Tampermonkey userscript for crex.com that enhances your live cricket match experience with TTS score announcements, theme persistence, and a beautiful glassmorphism UI.
 
-### Features
+### ✨ Features
 
-1. **TTS Score Announcer**
-   - Announces score changes during live matches
-   - Announces over summaries with runs, wickets, and overs
-   - Customizable voice selection
-   - Volume control with slider
-   - Mute/unmute toggle (keyboard shortcut: 'm')
+#### 1. **TTS Score Announcer**
+- 🔊 Real-time ball-by-ball score announcements
+- 📢 Over summaries with runs, wickets, and overs
+- 🎙️ Modal voice selector with all available system voices
+- 🎚️ Smooth volume control slider
+- 🔇 Mute/unmute toggle (keyboard shortcut: 'M')
+- 💾 Remembers your voice and volume preferences
 
-2. **Flicker-Free Theme Persistence** (v1.9 - Optimized)
-   - Fixes crex.com's broken theme persistence
-   - **No theme flicker** on page load - theme applied before page renders
-   - Automatically saves your theme preference (dark/light) to cookies
-   - Restores your theme instantly on page reload and navigation
-   - Works exactly how the site intends it to work
+#### 2. **Modern Glassmorphism UI** (v4.0+)
+- 🎨 Beautiful frosted glass control bar
+- 🎤 Modal voice selector with professional design
+- ✨ Smooth hover effects and animations
+- 🔵 Blue accent colors with elegant shadows
+- 📱 Compact, centered design that doesn't interfere with content
+- 🎭 Backdrop blur effects for premium look
 
-3. **Fixed Duplicate Controls Issue** (v1.6)
-   - Resolved issue where controls (especially volume slider) appeared multiple times
-   - Improved URL change detection and script initialization
+#### 3. **Flicker-Free Theme Persistence** (v1.9+)
+- 🌗 Fixes crex.com's broken theme persistence
+- ⚡ Zero flicker - theme applied before page renders
+- 🍪 Automatically saves theme preference to cookies
+- 🔄 Instant theme restoration on reload/navigation
+- 🔧 Works with the site's native theme system
 
-### How Theme Persistence Works
+#### 4. **Bulletproof Implementation**
+- ✅ No duplicate controls
+- ✅ Works with SPA navigation
+- ✅ Proper cleanup on page changes
+- ✅ Error handling for edge cases
+- ✅ Optimized performance
 
-**Key Improvement in v1.9:**
-- Script now runs at `document-start` (instead of `document-idle`)
-- Theme is applied **immediately** before the page renders
-- Eliminates the theme flicker that occurred in v1.8
+### 🎨 UI Design
 
-**Implementation Details:**
-After inspecting crex.com's actual code, the script properly implements theme persistence:
+**Compact Control Bar:**
+```
+┌─────────────────────────────────────┐
+│  🎤  [🔉 ━━━●━━━ 🔊]  🔇         │
+└─────────────────────────────────────┘
+```
 
-**How crex.com's theme system works:**
-- Stores theme in cookie named `system-theme` with value `'dark'` or `'light'`
-- Uses `data-theme` attribute on the `<html>` element
-- Site has inline script that tries to read cookie and apply theme on load
+- **Voice Icon (🎤)**: Click to open modal with all voices
+- **Volume Slider**: 120px smooth range slider with hover effects
+- **Mute Button**: Circular button with glow effect
+- **Glassmorphism**: Frosted glass background with blur
+- **Smooth Animations**: Scale, fade, and transform effects
 
-**What the script does:**
-1. **Immediately** (at document-start) reads `system-theme` cookie
-2. Applies theme to `data-theme` attribute on `<html>` before page renders
-3. On DOM ready, sets up monitoring for theme changes
-4. When theme changes (user clicks toggle), updates the cookie with 1-year expiration
-5. Ensures cookie persists correctly across sessions
+**Modal Voice Selector:**
+- Full-screen overlay with blur
+- Centered, scrollable voice list
+- Selected voice highlighted in blue
+- Close with ✕ button or click outside
+- Smooth fade-in/slide-in animations
 
-**This fixes the site's broken persistence** - The site's native implementation doesn't properly maintain the cookie, so theme resets on reload. This script ensures the cookie persists correctly with no flicker.
+### 📦 Installation
 
-### Installation
+#### Quick Install (Recommended)
+```
+1. Install Tampermonkey extension in your browser
+2. Click this link: https://cdn.jsdelivr.net/gh/GiridharSalana/Tampermonkey@main/Custom%20Crex
+3. Click "Install" when Tampermonkey opens
+4. Visit crex.com and enjoy!
+```
 
+#### Manual Install
+```
 1. Install Tampermonkey browser extension
-2. Create a new script in Tampermonkey
-3. Copy the contents of `Custom Crex` file
-4. Save and enable the script
-5. Visit crex.com and set your preferred theme
-6. Theme will now persist across page reloads and navigation **without any flicker**
+2. Open Tampermonkey dashboard
+3. Click "Create a new script"
+4. Copy contents from: https://github.com/GiridharSalana/Tampermonkey/blob/main/Custom%20Crex
+5. Save (Ctrl+S)
+6. Visit crex.com
+```
 
-### Technical Details
+### 🎮 Usage
+
+1. **Navigate** to any live match on crex.com
+2. **Controls appear** below the score header
+3. **Click 🎤** to select your preferred voice
+4. **Adjust volume** with the slider
+5. **Press M** to mute/unmute anytime
+6. **Enjoy** real-time score announcements!
+
+### 🛠️ Technical Details
+
+**Architecture:**
+- Runs at `document-start` for flicker-free theme loading
+- MutationObserver for score change detection
+- Event-driven voice popup system
+- Glassmorphism CSS with backdrop-filter
+- localStorage for preferences, cookies for theme
 
 **Theme Implementation:**
-- Storage: Cookie `system-theme` (not localStorage)
-- DOM Target: `<html>` element with `data-theme` attribute
+- Cookie: `system-theme` (not localStorage)
+- DOM: `data-theme` attribute on `<html>`
 - Values: `'dark'` or `'light'`
-- Cookie Expiration: 1 year
-- Script Timing: `document-start` (critical for flicker-free loading)
-- No CSS classes used for theming
+- Expiration: 1 year
+- Zero flicker with pre-render application
 
-**Version History:**
-- v1.9: Eliminated theme flicker by running at document-start
-- v1.8: Fixed theme persistence using cookies
-- v1.6: Fixed duplicate controls issue
-- v1.5: Initial TTS implementation
+**Controls Implementation:**
+- Container: `.team-result > div` (inside score header)
+- Modal: Fixed position overlay with z-index: 100000
+- Voice loading: On-demand when modal opens
+- Animations: CSS transitions (0.2-0.3s ease)
 
+### 📝 Version History
+
+- **v4.2** (Current): Professional modal voice selector
+- **v4.1**: Fixed voice loading in popup
+- **v4.0**: Modern glassmorphism UI overhaul
+- **v3.4**: Margin-based spacing, 180px width
+- **v3.0-3.3**: Single-line layout iterations
+- **v2.0-2.9**: UI improvements and positioning fixes
+- **v1.9**: Eliminated theme flicker
+- **v1.8**: Fixed theme persistence with cookies
+- **v1.6**: Fixed duplicate controls
+- **v1.5**: Initial TTS implementation
+
+### 🎯 Key Improvements from v1.0 → v4.2
+
+| Feature | v1.0 | v4.2 |
+|---------|------|------|
+| UI Design | Basic dropdowns | Glassmorphism modal |
+| Theme | Broken | Flicker-free |
+| Voice Selection | Small dropdown | Full modal |
+| Animations | None | Smooth transitions |
+| Layout | Two lines | Compact one line |
+| Styling | Minimal | Premium design |
+| Reliability | Duplicates | Bulletproof |
+
+### 🤝 Contributing
+
+Found a bug or have a suggestion? Open an issue or PR!
+
+### 📄 License
+
+MIT - Feel free to use and modify!
+
+---
+
+**Made with ❤️ for cricket fans who love tech**
