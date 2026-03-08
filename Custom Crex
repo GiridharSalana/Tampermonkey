@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      2.7
-// @description  TTS score announcer with proper spacing and z-index for crex.com
+// @version      2.8
+// @description  TTS score announcer with correct positioning below content for crex.com
 // @author       You
 // @match        https://crex.com/*
 // @icon         https://crex.com/assets/icon/favicon.ico
@@ -330,7 +330,7 @@ function initScript() {
         controlsContainer.appendChild(muteButton);
         controlsContainer.appendChild(volumeContainer);
 
-        myDiv.insertBefore(controlsContainer, myDiv.firstChild);
+        myDiv.appendChild(controlsContainer);
 
         function updateMuteUI() {
             if (isMute) {
