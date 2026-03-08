@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      2.9
+// @version      2.10
 // @description  TTS score announcer with centered mute button layout for crex.com
 // @author       You
 // @match        https://crex.com/*
@@ -536,30 +536,14 @@ function getVoices() {
             reject(new Error('Speech synthesis not supported'));
             return;
         }
-
         const synth = window.speechSynthesis;
-        const initialVoices = synth.getVoices();
-        if (initialVoices.length > 0) {
-            resolve(initialVoices);
+        const voices = synth.getVoices();
+        if (voices.length > 0) {
+            resolve(voices);
             return;
         }
-
-        // Some browsers (especially with tightened privacy settings) may never fire
-        // voiceschanged. Use a fallback timeout so we can proceed gracefully.
-        let resolved = false;
-        const tryResolve = () => {
-            if (resolved) return;
-            resolved = true;
-            resolve(synth.getVoices());
-        };
-
-        const timeoutId = setTimeout(() => {
-            tryResolve();
-        }, 2500);
-
         synth.onvoiceschanged = () => {
-            clearTimeout(timeoutId);
-            tryResolve();
+            resolve(synth.getVoices());
         };
     });
 }
