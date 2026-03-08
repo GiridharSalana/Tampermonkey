@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      3.0
-// @description  TTS score announcer - restored to original working location, clean single line
+// @version      3.1
+// @description  TTS score announcer with symmetrical controls layout for crex.com
 // @author       You
 // @match        https://crex.com/*
 // @icon         https://crex.com/assets/icon/favicon.ico
@@ -276,7 +276,7 @@ function initScript() {
             font-weight: 500;
             cursor: pointer;
             outline: none;
-            min-width: 160px;
+            width: 140px;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
         `;
 
@@ -299,7 +299,7 @@ function initScript() {
         volumeSlider.max = '100';
         volumeSlider.value = volume;
         volumeSlider.style.cssText = `
-            width: 100px;
+            width: 140px;
             cursor: pointer;
             accent-color: #4a9eff;
         `;
