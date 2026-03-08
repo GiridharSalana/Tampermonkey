@@ -2,7 +2,7 @@
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
 // @version      4.4
-// @description  Fixed missing voiceIconWrapper causing script to fail
+// @description  TTS score announcer with modern glassmorphism UI and modal voice selector for crex.com
 // @author       You
 // @match        https://crex.com/*
 // @icon         https://crex.com/assets/icon/favicon.ico
