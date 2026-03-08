@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      2.6
-// @description  TTS score announcer with properly centered controls for crex.com
+// @version      2.7
+// @description  TTS score announcer with proper spacing and z-index for crex.com
 // @author       You
 // @match        https://crex.com/*
 // @icon         https://crex.com/assets/icon/favicon.ico
@@ -253,12 +253,12 @@ function initScript() {
             gap: 20px;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 6px;
-            margin: 10px auto;
+            margin: 15px auto;
             width: fit-content;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
             position: relative;
-            left: 0;
-            right: 0;
+            z-index: 100;
+            clear: both;
         `;
 
         // Mute button
