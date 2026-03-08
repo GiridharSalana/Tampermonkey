@@ -1,14 +1,35 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      1.8
-// @description  TTS score announcer with proper theme persistence fix for crex.com
+// @version      1.9
+// @description  TTS score announcer with flicker-free theme persistence for crex.com
 // @author       You
 // @match        https://crex.com/*
 // @icon         https://crex.com/assets/icon/favicon.ico
 // @grant        none
-// @run-at       document-idle
+// @run-at       document-start
 // ==/UserScript==
+
+// IMMEDIATE THEME FIX - Runs before page renders to prevent flicker
+(function() {
+    'use strict';
+    
+    function getThemeFromCookie() {
+        const cookie = document.cookie.split('; ').find(row => row.startsWith('system-theme='));
+        return cookie ? cookie.split('=')[1] : null;
+    }
+    
+    function setThemeCookie(theme) {
+        const expires = new Date();
+        expires.setFullYear(expires.getFullYear() + 1);
+        document.cookie = `system-theme=${theme}; expires=${expires.toUTCString()}; path=/`;
+    }
+    
+    const savedTheme = getThemeFromCookie();
+    if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+})();
 
 var isMute = localStorage.getItem('isMute');
 var volume = localStorage.getItem('volume');
@@ -40,6 +61,15 @@ function log(...args) {
 (function () {
     'use strict';
 
+    // Wait for DOM to be ready since we're running at document-start
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeScript);
+    } else {
+        initializeScript();
+    }
+})();
+
+function initializeScript() {
     fixThemePersistence();
 
     if (!window.location.pathname.startsWith('/scoreboard/')) {
@@ -49,7 +79,7 @@ function log(...args) {
     }
 
     initScript();
-})();
+}
 
 function monitorUrlChanges() {
     if (urlObserver) {
@@ -375,26 +405,22 @@ function setThemeCookie(theme) {
 }
 
 function fixThemePersistence() {
-    log('Checking theme persistence...');
+    log('Setting up theme monitoring...');
     
     const cookieTheme = getThemeFromCookie();
     const htmlTheme = document.documentElement.getAttribute('data-theme');
     
-    if (cookieTheme) {
-        log('Found theme in cookie:', cookieTheme);
-        if (htmlTheme !== cookieTheme) {
-            log('Applying theme from cookie to HTML...');
-            document.documentElement.setAttribute('data-theme', cookieTheme);
-        }
-    } else if (htmlTheme) {
-        log('No cookie found, but HTML has theme:', htmlTheme, '- Setting cookie...');
+    // Save cookie if we have a theme but no cookie
+    if (htmlTheme && !cookieTheme) {
+        log('Saving current theme to cookie:', htmlTheme);
         setThemeCookie(htmlTheme);
-    } else {
-        log('No theme found, using default: light');
+    } else if (!htmlTheme && !cookieTheme) {
+        log('No theme found, setting default: light');
         setThemeCookie('light');
         document.documentElement.setAttribute('data-theme', 'light');
     }
     
+    // Monitor for theme changes
     const observer = new MutationObserver((mutations) => {
         for (let mutation of mutations) {
             if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
