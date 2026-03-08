@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      2.5
-// @description  TTS score announcer with improved visibility and balanced controls for crex.com
+// @version      2.6
+// @description  TTS score announcer with properly centered controls for crex.com
 // @author       You
 // @match        https://crex.com/*
 // @icon         https://crex.com/assets/icon/favicon.ico
@@ -236,8 +236,12 @@ function initScript() {
         }
         
         var myDiv = element;
-        myDiv.style.display = "flex";
-        myDiv.style.flexDirection = "column";
+        myDiv.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        `;
 
         const controlsContainer = document.createElement("div");
         controlsContainer.id = 'crex-tts-controls';
@@ -252,6 +256,9 @@ function initScript() {
             margin: 10px auto;
             width: fit-content;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            position: relative;
+            left: 0;
+            right: 0;
         `;
 
         // Mute button
