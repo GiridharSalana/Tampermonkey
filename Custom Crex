@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      4.5
+// @version      4.6
 // @description  TTS score announcer with modern glassmorphism UI and modal voice selector for crex.com
 // @author       You
 // @match        https://crex.com/*
@@ -442,6 +442,7 @@ function initScript() {
         function populateVoiceListNow() {
             getVoices().then(voices => {
                 voiceList.innerHTML = ''; // Clear loading message
+                voiceSelector.innerHTML = ''; // Clear previous options
                 let selectedVoice = localStorage.getItem('selectedVoice');
                 
                 if (voices.length === 0) {
@@ -452,6 +453,7 @@ function initScript() {
                 voices.forEach(voice => {
                     // Add to hidden select
                     let option = document.createElement('option');
+                    option.value = voice.name;
                     option.textContent = voice.name;
                     option.setAttribute('data-lang', voice.lang);
                     option.setAttribute('data-name', voice.name);
@@ -483,6 +485,8 @@ function initScript() {
                     voiceItem.onclick = () => {
                         voiceSelector.value = voice.name;
                         localStorage.setItem('selectedVoice', voice.name);
+                        log('Voice selected:', voice.name);
+                        log('voiceSelector.value set to:', voiceSelector.value);
                         modalOverlay.style.display = 'none';
                         isModalOpen = false;
                         document.body.style.overflow = ''; // Re-enable background scroll
@@ -695,7 +699,11 @@ function audioAnnouncer(text) {
     if (voiceSelect) {
         let voices = synth.getVoices();
         let selectedVoice = voices.find(v => v.name === voiceSelect.value);
+        log('Selected voice from dropdown:', voiceSelect.value);
+        log('Found voice object:', selectedVoice ? selectedVoice.name : 'NOT FOUND');
         if (selectedVoice) utterance.voice = selectedVoice;
+    } else {
+        log('voiceSelect element not found!');
     }
     utterance.volume = convertVolume(volume);
     synth.speak(utterance);
