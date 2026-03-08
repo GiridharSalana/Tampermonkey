@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      1.5
-// @description  TTS score announcer for crex.com live matches
+// @version      1.8
+// @description  TTS score announcer with proper theme persistence fix for crex.com
 // @author       You
 // @match        https://crex.com/*
 // @icon         https://crex.com/assets/icon/favicon.ico
@@ -23,11 +23,13 @@ const SELECTORS = {
     score_element: '.live-score-header.mob-none app-match-details-wrapper .team-result > div > span',
     score_runs: '.live-score-header.mob-none app-match-details-wrapper .team-score > div > span:first-child',
     score_overs: '.live-score-header.mob-none app-match-details-wrapper .team-score > div > span:nth-child(2)',
+    theme_toggle: 'header .head-right-ui .nav-items .theme-toggle',
 };
 const LOG_PREFIX = '[CustomCrex]';
 const STABILIZE_MS = 2500;
 
 let scoreObserver = null;
+let urlObserver = null;
 let lastUrl = location.href;
 let initialized = false;
 
@@ -37,6 +39,8 @@ function log(...args) {
 
 (function () {
     'use strict';
+
+    fixThemePersistence();
 
     if (!window.location.pathname.startsWith('/scoreboard/')) {
         log('Not a match page, waiting for SPA navigation...');
@@ -48,7 +52,10 @@ function log(...args) {
 })();
 
 function monitorUrlChanges() {
-    const urlObserver = new MutationObserver(() => {
+    if (urlObserver) {
+        return;
+    }
+    urlObserver = new MutationObserver(() => {
         if (location.href !== lastUrl) {
             lastUrl = location.href;
             if (window.location.pathname.startsWith('/scoreboard/')) {
@@ -78,10 +85,14 @@ function initScript() {
     initialized = true;
     log('Initializing on:', location.href);
 
-    monitorUrlChanges();
-
     waitForElementToExist(SELECTORS.container_div).then(element => {
         log('Found container, injecting controls...');
+        
+        if (document.getElementById('crex-tts-controls') || document.getElementById('crex-volume-container')) {
+            log('Controls already exist, skipping injection...');
+            return;
+        }
+        
         var myDiv = element;
         myDiv.style.display = "flex";
         myDiv.style.flexDirection = "column";
@@ -349,4 +360,60 @@ function populateVoiceList() {
     voiceSelect.addEventListener('change', function () {
         localStorage.setItem('selectedVoice', voiceSelect.value);
     });
+}
+
+function getThemeFromCookie() {
+    const cookie = document.cookie.split('; ').find(row => row.startsWith('system-theme='));
+    return cookie ? cookie.split('=')[1] : null;
+}
+
+function setThemeCookie(theme) {
+    const expires = new Date();
+    expires.setFullYear(expires.getFullYear() + 1);
+    document.cookie = `system-theme=${theme}; expires=${expires.toUTCString()}; path=/`;
+    log('Theme cookie set:', theme);
+}
+
+function fixThemePersistence() {
+    log('Checking theme persistence...');
+    
+    const cookieTheme = getThemeFromCookie();
+    const htmlTheme = document.documentElement.getAttribute('data-theme');
+    
+    if (cookieTheme) {
+        log('Found theme in cookie:', cookieTheme);
+        if (htmlTheme !== cookieTheme) {
+            log('Applying theme from cookie to HTML...');
+            document.documentElement.setAttribute('data-theme', cookieTheme);
+        }
+    } else if (htmlTheme) {
+        log('No cookie found, but HTML has theme:', htmlTheme, '- Setting cookie...');
+        setThemeCookie(htmlTheme);
+    } else {
+        log('No theme found, using default: light');
+        setThemeCookie('light');
+        document.documentElement.setAttribute('data-theme', 'light');
+    }
+    
+    const observer = new MutationObserver((mutations) => {
+        for (let mutation of mutations) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+                const newTheme = document.documentElement.getAttribute('data-theme');
+                if (newTheme) {
+                    const currentCookie = getThemeFromCookie();
+                    if (currentCookie !== newTheme) {
+                        log('Theme changed to:', newTheme, '- Updating cookie...');
+                        setThemeCookie(newTheme);
+                    }
+                }
+            }
+        }
+    });
+    
+    observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme']
+    });
+    
+    log('Theme monitoring active - watching data-theme attribute on <html>');
 }
