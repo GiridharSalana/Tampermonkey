@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      2.3
-// @description  TTS score announcer with compact, centered controls for crex.com
+// @version      2.4
+// @description  TTS score announcer with centered mute button layout for crex.com
 // @author       You
 // @match        https://crex.com/*
 // @icon         https://crex.com/assets/icon/favicon.ico
@@ -303,8 +303,8 @@ function initScript() {
         volumeContainer.appendChild(volumeSlider);
         volumeContainer.appendChild(highVolumeIcon);
 
-        controlsContainer.appendChild(muteButton);
         controlsContainer.appendChild(voiceSelector);
+        controlsContainer.appendChild(muteButton);
         controlsContainer.appendChild(volumeContainer);
 
         myDiv.insertBefore(controlsContainer, myDiv.firstChild);
