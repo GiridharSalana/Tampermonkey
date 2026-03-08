@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      1.9
-// @description  TTS score announcer with flicker-free theme persistence for crex.com
+// @version      2.0
+// @description  TTS score announcer with UI improvements and theme persistence for crex.com
 // @author       You
 // @match        https://crex.com/*
 // @icon         https://crex.com/assets/icon/favicon.ico
@@ -70,6 +70,7 @@ function log(...args) {
 })();
 
 function initializeScript() {
+    injectUIFixes();
     fixThemePersistence();
 
     if (!window.location.pathname.startsWith('/scoreboard/')) {
@@ -79,6 +80,105 @@ function initializeScript() {
     }
 
     initScript();
+}
+
+function injectUIFixes() {
+    const style = document.createElement('style');
+    style.id = 'crex-ui-fixes';
+    style.textContent = `
+        /* Center and balance the main content area */
+        .match-detail-container,
+        .match-info-container,
+        .scorecard-container {
+            max-width: 1200px;
+            margin: 0 auto !important;
+            padding: 0 20px;
+        }
+        
+        /* Center the commentary section */
+        .commentary-section,
+        app-commentary {
+            max-width: 1200px;
+            margin: 0 auto !important;
+            padding: 0 20px;
+        }
+        
+        /* Balance the player cards section */
+        .player-cards-wrapper,
+        .player-of-match {
+            display: flex;
+            justify-content: center !important;
+            align-items: center;
+            margin: 0 auto;
+        }
+        
+        /* Center the probability section */
+        .probability-container {
+            max-width: 1200px;
+            margin: 0 auto !important;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        /* Fix tab content centering */
+        .tab-content,
+        .match-detail-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        
+        /* Center scorecard tables */
+        .scorecard-table,
+        table.scorecard {
+            margin: 0 auto !important;
+        }
+        
+        /* Balance team stats */
+        .team-stats-wrapper {
+            max-width: 1200px;
+            margin: 0 auto !important;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        
+        /* Center match info sections */
+        .match-info-section {
+            max-width: 1200px;
+            margin: 0 auto !important;
+            text-align: center;
+        }
+        
+        /* Fix angular component centering */
+        app-match-info,
+        app-scorecard,
+        app-live-score {
+            display: block;
+            max-width: 1200px;
+            margin: 0 auto !important;
+        }
+        
+        /* Center the main content wrapper */
+        .main-content,
+        .content-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+    `;
+    
+    if (document.head) {
+        document.head.appendChild(style);
+        log('UI fixes injected');
+    } else {
+        document.addEventListener('DOMContentLoaded', () => {
+            document.head.appendChild(style);
+            log('UI fixes injected (delayed)');
+        });
+    }
 }
 
 function monitorUrlChanges() {
