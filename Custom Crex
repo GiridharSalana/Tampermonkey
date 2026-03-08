@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      3.2
-// @description  TTS score announcer with proper spacing and symmetry for crex.com
+// @version      3.3
+// @description  TTS score announcer with perfectly matched control widths for crex.com
 // @author       You
 // @match        https://crex.com/*
 // @icon         https://crex.com/assets/icon/favicon.ico
@@ -282,18 +282,19 @@ function initScript() {
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
         `;
 
-        // Volume slider container
+        // Volume slider container - same total width as voice selector
         const volumeContainer = document.createElement('div');
         volumeContainer.style.cssText = `
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             width: 140px;
+            box-sizing: border-box;
         `;
 
         const lowVolumeIcon = document.createElement('span');
         lowVolumeIcon.textContent = '🔉';
-        lowVolumeIcon.style.cssText = 'font-size: 18px; opacity: 0.9;';
+        lowVolumeIcon.style.cssText = 'font-size: 16px; opacity: 0.9; flex-shrink: 0;';
 
         const volumeSlider = document.createElement('input');
         volumeSlider.type = 'range';
@@ -303,13 +304,14 @@ function initScript() {
         volumeSlider.value = volume;
         volumeSlider.style.cssText = `
             flex: 1;
+            min-width: 0;
             cursor: pointer;
             accent-color: #4a9eff;
         `;
 
         const highVolumeIcon = document.createElement('span');
         highVolumeIcon.textContent = '🔊';
-        highVolumeIcon.style.cssText = 'font-size: 18px; opacity: 0.9;';
+        highVolumeIcon.style.cssText = 'font-size: 16px; opacity: 0.9; flex-shrink: 0;';
 
         volumeContainer.appendChild(lowVolumeIcon);
         volumeContainer.appendChild(volumeSlider);
