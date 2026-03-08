@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      2.10
+// @version      2.5
 // @description  TTS score announcer with centered mute button layout for crex.com
 // @author       You
 // @match        https://crex.com/*
@@ -279,36 +279,15 @@ function initScript() {
         voiceSelector.style.cssText = `
             padding: 6px 10px;
             border-radius: 6px;
-            border: 1px solid rgba(255, 255, 255, 0.35);
-            background-color: rgba(0, 0, 0, 0.65);
-            color: #f7f7f7;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background-color: rgba(255, 255, 255, 0.12);
+            color: #ffffff;
             font-size: 12px;
             cursor: pointer;
             outline: none;
-            box-shadow: none;
-            min-width: 170px;
-            max-width: 240px;
-            text-align: left;
-            -webkit-appearance: none;
-            appearance: none;
-            background-image: linear-gradient(45deg, transparent 50%, rgba(255,255,255,0.6) 50%), linear-gradient(135deg, rgba(255,255,255,0.6) 50%, transparent 50%);
-            background-position: calc(100% - 12px) calc(50% - 3px), calc(100% - 8px) calc(50% - 3px);
-            background-size: 6px 6px;
-            background-repeat: no-repeat;
+            min-width: 150px;
+            max-width: 180px;
         `;
-        const placeholderOption = document.createElement('option');
-        placeholderOption.textContent = 'Loading voices...';
-        placeholderOption.disabled = true;
-        placeholderOption.selected = true;
-        voiceSelector.appendChild(placeholderOption);
-
-        voiceSelector.onchange = function () {
-            if (voiceSelector.value === '__retry__') {
-                populateVoiceList();
-                return;
-            }
-            localStorage.setItem('selectedVoice', voiceSelector.value);
-        };
 
         // Volume slider container
         const volumeContainer = document.createElement('div');
@@ -536,8 +515,8 @@ function getVoices() {
             reject(new Error('Speech synthesis not supported'));
             return;
         }
-        const synth = window.speechSynthesis;
-        const voices = synth.getVoices();
+        let synth = window.speechSynthesis;
+        let voices = synth.getVoices();
         if (voices.length > 0) {
             resolve(voices);
             return;
@@ -548,36 +527,12 @@ function getVoices() {
     });
 }
 
-function populateVoiceList(retries = 5) {
+function populateVoiceList() {
     let voiceSelect = document.getElementById('voiceSelect');
     if (!voiceSelect) return;
 
-    // Disable until we have a real list of voices.
-    voiceSelect.disabled = true;
-
-    // Show a placeholder while we wait for voices.
-    voiceSelect.innerHTML = '';
-    const loadingOption = document.createElement('option');
-    loadingOption.textContent = 'Loading voices...';
-    loadingOption.disabled = true;
-    loadingOption.selected = true;
-    voiceSelect.appendChild(loadingOption);
-
     getVoices()
         .then(voices => {
-            if (!voices.length && retries > 0) {
-                // Some browsers (especially behind privacy settings) return empty initially.
-                setTimeout(() => populateVoiceList(retries - 1), 500);
-                return;
-            }
-
-            voiceSelect.innerHTML = '';
-            const placeholder = document.createElement('option');
-            placeholder.textContent = voices.length ? 'Select voice...' : 'No voices available';
-            placeholder.disabled = true;
-            placeholder.selected = true;
-            voiceSelect.appendChild(placeholder);
-
             voices.forEach(voice => {
                 let option = document.createElement('option');
                 option.textContent = voice.name;
@@ -585,19 +540,6 @@ function populateVoiceList(retries = 5) {
                 option.setAttribute('data-name', voice.name);
                 voiceSelect.appendChild(option);
             });
-
-            if (voices.length) {
-                voiceSelect.disabled = false;
-            } else {
-                // Provide a way to retry if the browser fails to load voices.
-                const retryOption = document.createElement('option');
-                retryOption.textContent = 'Retry loading voices';
-                retryOption.value = '__retry__';
-                retryOption.disabled = false;
-                voiceSelect.appendChild(retryOption);
-                voiceSelect.disabled = false;
-            }
-
             let selectedVoice = localStorage.getItem('selectedVoice');
             if (selectedVoice) {
                 voiceSelect.value = selectedVoice;
@@ -605,20 +547,11 @@ function populateVoiceList(retries = 5) {
         })
         .catch(error => {
             log('Error retrieving voices:', error);
-            voiceSelect.innerHTML = '';
-            const errorOption = document.createElement('option');
-            errorOption.textContent = 'Voice error';
-            errorOption.disabled = true;
-            errorOption.selected = true;
-            voiceSelect.appendChild(errorOption);
-            const retryOption = document.createElement('option');
-            retryOption.textContent = 'Retry loading voices';
-            retryOption.value = '__retry__';
-            retryOption.disabled = false;
-            voiceSelect.appendChild(retryOption);
-            voiceSelect.disabled = false;
         });
 
+    voiceSelect.addEventListener('change', function () {
+        localStorage.setItem('selectedVoice', voiceSelect.value);
+    });
 }
 
 function getThemeFromCookie() {
