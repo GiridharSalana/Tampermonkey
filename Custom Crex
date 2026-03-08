@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Custom Crex
 // @namespace    http://tampermonkey.net/
-// @version      4.6
+// @version      4.7
 // @description  TTS score announcer with modern glassmorphism UI and modal voice selector for crex.com
 // @author       You
 // @match        https://crex.com/*
@@ -598,6 +598,9 @@ function initScript() {
         controlsContainer.appendChild(voiceIconWrapper);
         controlsContainer.appendChild(volumeContainer);
         controlsContainer.appendChild(muteButton);
+        
+        // Append hidden voiceSelector to body
+        document.body.appendChild(voiceSelector);
 
         myDiv.insertBefore(controlsContainer, myDiv.firstChild);
 
@@ -627,8 +630,6 @@ function initScript() {
                 muteButton.click();
             }
         });
-
-        populateVoiceList();
 
         volumeSlider.addEventListener('input', function () {
             volume = volumeSlider.value;
@@ -732,7 +733,6 @@ function convertVolume(volumeString) {
     return volumeInt / 100;
 }
 
-
 function waitForElementToExist(selector, timeout = 30000) {
     return new Promise((resolve, reject) => {
         const startTime = Date.now();
@@ -808,73 +808,6 @@ function getVoices() {
             resolve(synth.getVoices());
         };
     });
-}
-
-function populateVoiceList() {
-    let voiceSelect = document.getElementById('voiceSelect');
-    let voicePopup = document.getElementById('voice-popup');
-    if (!voiceSelect || !voicePopup) return;
-
-    getVoices()
-        .then(voices => {
-            let selectedVoice = localStorage.getItem('selectedVoice');
-            
-            voices.forEach(voice => {
-                // Add to hidden select
-                let option = document.createElement('option');
-                option.textContent = voice.name;
-                option.setAttribute('data-lang', voice.lang);
-                option.setAttribute('data-name', voice.name);
-                voiceSelect.appendChild(option);
-                
-                // Add to popup menu
-                let voiceItem = document.createElement('div');
-                voiceItem.textContent = voice.name;
-                voiceItem.style.cssText = `
-                    padding: 10px 12px;
-                    cursor: pointer;
-                    border-radius: 8px;
-                    font-size: 13px;
-                    color: #ffffff;
-                    transition: all 0.2s ease;
-                    ${selectedVoice === voice.name ? 'background: rgba(74, 158, 255, 0.3); font-weight: 600;' : ''}
-                `;
-                voiceItem.onmouseover = () => {
-                    if (selectedVoice !== voice.name) {
-                        voiceItem.style.background = 'rgba(255, 255, 255, 0.1)';
-                    }
-                };
-                voiceItem.onmouseout = () => {
-                    if (selectedVoice !== voice.name) {
-                        voiceItem.style.background = 'transparent';
-                    }
-                };
-                voiceItem.onclick = () => {
-                    voiceSelect.value = voice.name;
-                    localStorage.setItem('selectedVoice', voice.name);
-                    voicePopup.style.display = 'none';
-                    
-                    // Update all voice items
-                    Array.from(voicePopup.children).forEach(item => {
-                        if (item.textContent === voice.name) {
-                            item.style.background = 'rgba(74, 158, 255, 0.3)';
-                            item.style.fontWeight = '600';
-                        } else {
-                            item.style.background = 'transparent';
-                            item.style.fontWeight = 'normal';
-                        }
-                    });
-                };
-                voicePopup.appendChild(voiceItem);
-            });
-            
-            if (selectedVoice) {
-                voiceSelect.value = selectedVoice;
-            }
-        })
-        .catch(error => {
-            log('Error retrieving voices:', error);
-        });
 }
 
 function getThemeFromCookie() {
