@@ -1,6 +1,6 @@
 # Tampermonkey Scripts
 
-## Custom Crex (v1.8)
+## Custom Crex (v1.9)
 
 A Tampermonkey userscript for crex.com that adds TTS (Text-to-Speech) score announcements and fixes theme persistence for live cricket matches.
 
@@ -13,10 +13,11 @@ A Tampermonkey userscript for crex.com that adds TTS (Text-to-Speech) score anno
    - Volume control with slider
    - Mute/unmute toggle (keyboard shortcut: 'm')
 
-2. **Theme Persistence Fix** (v1.8 - Properly Implemented)
+2. **Flicker-Free Theme Persistence** (v1.9 - Optimized)
    - Fixes crex.com's broken theme persistence
+   - **No theme flicker** on page load - theme applied before page renders
    - Automatically saves your theme preference (dark/light) to cookies
-   - Restores your theme on page reload and navigation
+   - Restores your theme instantly on page reload and navigation
    - Works exactly how the site intends it to work
 
 3. **Fixed Duplicate Controls Issue** (v1.6)
@@ -25,7 +26,13 @@ A Tampermonkey userscript for crex.com that adds TTS (Text-to-Speech) score anno
 
 ### How Theme Persistence Works
 
-After inspecting crex.com's actual code, the script now properly implements theme persistence:
+**Key Improvement in v1.9:**
+- Script now runs at `document-start` (instead of `document-idle`)
+- Theme is applied **immediately** before the page renders
+- Eliminates the theme flicker that occurred in v1.8
+
+**Implementation Details:**
+After inspecting crex.com's actual code, the script properly implements theme persistence:
 
 **How crex.com's theme system works:**
 - Stores theme in cookie named `system-theme` with value `'dark'` or `'light'`
@@ -33,13 +40,13 @@ After inspecting crex.com's actual code, the script now properly implements them
 - Site has inline script that tries to read cookie and apply theme on load
 
 **What the script does:**
-1. On page load, checks if `system-theme` cookie exists
-2. If cookie exists, applies it to `data-theme` attribute on `<html>`
-3. If no cookie but theme is set in HTML, saves it to cookie
-4. Monitors the `data-theme` attribute for changes (when you click toggle)
-5. When theme changes, updates the cookie with 1-year expiration
+1. **Immediately** (at document-start) reads `system-theme` cookie
+2. Applies theme to `data-theme` attribute on `<html>` before page renders
+3. On DOM ready, sets up monitoring for theme changes
+4. When theme changes (user clicks toggle), updates the cookie with 1-year expiration
+5. Ensures cookie persists correctly across sessions
 
-**This fixes the site's broken persistence** - The site's native implementation doesn't properly maintain the cookie, so theme resets on reload. This script ensures the cookie persists correctly.
+**This fixes the site's broken persistence** - The site's native implementation doesn't properly maintain the cookie, so theme resets on reload. This script ensures the cookie persists correctly with no flicker.
 
 ### Installation
 
@@ -48,7 +55,7 @@ After inspecting crex.com's actual code, the script now properly implements them
 3. Copy the contents of `Custom Crex` file
 4. Save and enable the script
 5. Visit crex.com and set your preferred theme
-6. Theme will now persist across page reloads and navigation
+6. Theme will now persist across page reloads and navigation **without any flicker**
 
 ### Technical Details
 
@@ -57,16 +64,12 @@ After inspecting crex.com's actual code, the script now properly implements them
 - DOM Target: `<html>` element with `data-theme` attribute
 - Values: `'dark'` or `'light'`
 - Cookie Expiration: 1 year
+- Script Timing: `document-start` (critical for flicker-free loading)
 - No CSS classes used for theming
 
-**Previous Issues (v1.7):**
-- ❌ Used localStorage instead of cookies
-- ❌ Looked for CSS classes that don't exist
-- ❌ Applied theme incorrectly
-
-**Current Implementation (v1.8):**
-- ✅ Uses cookie `system-theme` (same as site)
-- ✅ Monitors only `data-theme` attribute on `<html>`
-- ✅ Applies theme correctly via attribute
-- ✅ Works with site's native theme system
+**Version History:**
+- v1.9: Eliminated theme flicker by running at document-start
+- v1.8: Fixed theme persistence using cookies
+- v1.6: Fixed duplicate controls issue
+- v1.5: Initial TTS implementation
 
